@@ -17,6 +17,7 @@ ARM_DYNAREC="${ARM_DYNAREC:-ON}"
 ARM64="${ARM64:-ON}"
 REQUIRED_RUNTIME_LIBS="${REQUIRED_RUNTIME_LIBS:-libbox64.dylib libzomdroid.dylib libzomdroidlinker.dylib}"
 CURRENT_BUILD_MODE=""
+export PATH="/opt/homebrew/bin:/opt/procursus/bin:$PATH"
 
 mkdir -p "$OUT_DIR" "$RUNTIME_OUT_DIR"
 rm -rf "$BUILD_DIR"
@@ -37,7 +38,10 @@ get_sdk_path() {
     sudo -n xcode-select -s /Applications/Xcode.app/Contents/Developer >/dev/null 2>&1 || true
   fi
 
-  sdk_path="$(xcrun --sdk iphoneos --show-sdk-path)"
+  if ! sdk_path="$(xcrun --sdk iphoneos --show-sdk-path)"; then
+    echo "::error title=runtime_probe::Failed to resolve iphoneos SDK with xcrun"
+    return 1
+  fi
   printf '%s\n' "$sdk_path"
 }
 
@@ -95,23 +99,29 @@ run_build_mode() {
   echo "[runtime_probe] ===== Mode: $mode ====="
   rm -rf "$BUILD_DIR"
 
-  cmake -S "$ROOT_DIR/app/src/main/cpp" -B "$BUILD_DIR" \
-    "${mode_args[@]}" \
-    -DCMAKE_OSX_SYSROOT="$sdk_path" \
-    -DCMAKE_OSX_ARCHITECTURES=arm64 \
-    -DCMAKE_OSX_DEPLOYMENT_TARGET="$MIN_IOS" \
-    -DCMAKE_BUILD_TYPE="$BUILD_CONFIG" \
-    -DZOMDROID_BUILD_GLFW="$ZOMDROID_BUILD_GLFW" \
-    -DZOMDROID_BUILD_ANDROID_JNI="$ZOMDROID_BUILD_ANDROID_JNI" \
-    -DZOMDROID_BUILD_LINKER="$ZOMDROID_BUILD_LINKER" \
-    -DARM_DYNAREC="$ARM_DYNAREC" \
-    -DARM64="$ARM64"
+  if ! cmake -S "$ROOT_DIR/app/src/main/cpp" -B "$BUILD_DIR" \
+      "${mode_args[@]}" \
+      -DCMAKE_OSX_SYSROOT="$sdk_path" \
+      -DCMAKE_OSX_ARCHITECTURES=arm64 \
+      -DCMAKE_OSX_DEPLOYMENT_TARGET="$MIN_IOS" \
+      -DCMAKE_BUILD_TYPE="$BUILD_CONFIG" \
+      -DZOMDROID_BUILD_GLFW="$ZOMDROID_BUILD_GLFW" \
+      -DZOMDROID_BUILD_ANDROID_JNI="$ZOMDROID_BUILD_ANDROID_JNI" \
+      -DZOMDROID_BUILD_LINKER="$ZOMDROID_BUILD_LINKER" \
+      -DARM_DYNAREC="$ARM_DYNAREC" \
+      -DARM64="$ARM64"; then
+    echo "::error title=runtime_probe::$mode cmake configure failed"
+    return 1
+  fi
 
   echo "[runtime_probe] Building targets (${build_targets[*]})"
-  cmake --build "$BUILD_DIR" \
-    --config "$BUILD_CONFIG" \
-    --target "${build_targets[@]}" \
-    --parallel "$(sysctl -n hw.logicalcpu)"
+  if ! cmake --build "$BUILD_DIR" \
+      --config "$BUILD_CONFIG" \
+      --target "${build_targets[@]}" \
+      --parallel "$(sysctl -n hw.logicalcpu)"; then
+    echo "::error title=runtime_probe::$mode cmake build failed"
+    return 1
+  fi
 }
 
 {
@@ -125,8 +135,15 @@ run_build_mode() {
   echo "[runtime_probe] ZOMDROID_BUILD_GLFW=$ZOMDROID_BUILD_GLFW"
   echo "[runtime_probe] ZOMDROID_BUILD_LINKER=$ZOMDROID_BUILD_LINKER"
   echo "[runtime_probe] ZOMDROID_BUILD_ANDROID_JNI=$ZOMDROID_BUILD_ANDROID_JNI"
+  echo "[runtime_probe] cmake path: $(command -v cmake || echo '<missing>')"
+  echo "[runtime_probe] ldid path: $(command -v ldid || echo '<missing>')"
   echo "[runtime_probe] xcode-select -p: $(xcode-select -p || true)"
   echo "[runtime_probe] xcodebuild: $(xcodebuild -version | tr '\n' ' ' || true)"
+
+  if ! command -v cmake >/dev/null 2>&1; then
+    echo "::error title=runtime_probe::cmake is not available in PATH"
+    exit 1
+  fi
 
   SDK_PATH="$(get_sdk_path)"
   echo "[runtime_probe] SDK_PATH=$SDK_PATH"
@@ -134,7 +151,10 @@ run_build_mode() {
 
   if ! run_build_mode ios-xcode "$SDK_PATH"; then
     echo "[runtime_probe] ios-xcode mode failed, trying amethyst-darwin mode"
-    run_build_mode amethyst-darwin "$SDK_PATH"
+    if ! run_build_mode amethyst-darwin "$SDK_PATH"; then
+      echo "::error title=runtime_probe::Both ios-xcode and amethyst-darwin modes failed"
+      exit 1
+    fi
   fi
 
   dylibs=()
