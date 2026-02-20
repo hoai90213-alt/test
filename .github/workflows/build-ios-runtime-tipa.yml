@@ -1,0 +1,72 @@
+name: build-ios-runtime-tipa
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-runtime-tipa:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install tools
+        run: |
+          if ! command -v ldid >/dev/null 2>&1; then
+            brew install ldid
+          fi
+          if ! command -v cmake >/dev/null 2>&1; then
+            brew install cmake
+          fi
+
+      - name: Build native runtime probe
+        id: runtime_probe
+        continue-on-error: true
+        env:
+          MIN_IOS: "14.0"
+        run: |
+          chmod +x ios/scripts/build_runtime_probe.sh
+          ios/scripts/build_runtime_probe.sh
+
+      - name: Build .tipa with runtime libs
+        if: always()
+        env:
+          APP_NAME: ZomdroidIOSRuntimePoC
+          BUNDLE_ID: org.zomdroid.iosruntimepoc
+          MIN_IOS: "14.0"
+          RUNTIME_LIB_DIR: artifacts/runtime-libs
+        run: |
+          chmod +x ios/scripts/build_tipa.sh
+          ios/scripts/build_tipa.sh
+
+      - name: Upload runtime logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zomdroid-ios-runtime-logs
+          path: artifacts/runtime-probe-build.log
+          if-no-files-found: warn
+
+      - name: Upload runtime libs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zomdroid-ios-runtime-libs
+          path: artifacts/runtime-libs
+          if-no-files-found: warn
+
+      - name: Upload runtime .tipa
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zomdroid-ios-runtime-tipa
+          path: artifacts/ZomdroidIOSRuntimePoC.tipa
+          if-no-files-found: warn
+
+      - name: Fail if runtime probe failed
+        if: steps.runtime_probe.outcome != 'success'
+        run: |
+          echo "Runtime probe failed. Check artifact: zomdroid-ios-runtime-logs"
+          exit 1

@@ -1,0 +1,41 @@
+name: build-ios-tipa
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/build-ios-tipa.yml"
+      - "ios/**"
+      - "app/src/main/cpp/**"
+
+jobs:
+  build-tipa:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install ldid
+        run: |
+          if ! command -v ldid >/dev/null 2>&1; then
+            brew install ldid
+          fi
+
+      - name: Build .tipa
+        env:
+          APP_NAME: ZomdroidIOSPoC
+          BUNDLE_ID: org.zomdroid.iospoc
+          MIN_IOS: "14.0"
+        run: |
+          chmod +x ios/scripts/build_tipa.sh
+          ios/scripts/build_tipa.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zomdroid-ios-poc-tipa
+          path: artifacts/ZomdroidIOSPoC.tipa
