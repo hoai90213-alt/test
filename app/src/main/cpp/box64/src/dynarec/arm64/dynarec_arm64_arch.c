@@ -333,6 +333,7 @@ void adjust_arch(dynablock_t* db, x64emu_t* emu, ucontext_t* p, uintptr_t x64pc)
     }
     struct fpsimd_context *fpsimd = NULL;
     // find fpsimd struct
+#if !defined(__APPLE__)
     {
         struct _aarch64_ctx * ff = (struct _aarch64_ctx*)ARM64_UC_MCONTEXT(p)->__reserved;
         while (ff->magic && !fpsimd) {
@@ -342,6 +343,7 @@ void adjust_arch(dynablock_t* db, x64emu_t* emu, ucontext_t* p, uintptr_t x64pc)
                 ff = (struct _aarch64_ctx*)((uintptr_t)ff + ff->size);
         }
     }
+#endif
     if(sse) {
         dynarec_log_prefix(0, LOG_INFO, " sse[%x (fpsimd=%p)] ", sse->sse, fpsimd);
         for(int i=0; i<16; ++i)
