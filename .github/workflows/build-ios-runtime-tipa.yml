@@ -6,6 +6,7 @@ on:
 jobs:
   build-runtime-tipa:
     runs-on: macos-14
+    timeout-minutes: 90
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,10 +23,13 @@ jobs:
           fi
 
       - name: Build native runtime probe
-        id: runtime_probe
-        continue-on-error: true
         env:
           MIN_IOS: "14.0"
+          BUILD_CONFIG: Release
+          ZOMDROID_BUILD_GLFW: "OFF"
+          ZOMDROID_BUILD_ANDROID_JNI: "OFF"
+          ZOMDROID_BUILD_LINKER: "ON"
+          REQUIRED_RUNTIME_LIBS: "libbox64.dylib libzomdroid.dylib libzomdroidlinker.dylib"
         run: |
           chmod +x ios/scripts/build_runtime_probe.sh
           ios/scripts/build_runtime_probe.sh
@@ -37,6 +41,9 @@ jobs:
           BUNDLE_ID: org.zomdroid.iosruntimepoc
           MIN_IOS: "14.0"
           RUNTIME_LIB_DIR: artifacts/runtime-libs
+          REQUIRE_RUNTIME_LIBS: "1"
+          REQUIRED_RUNTIME_LIBS: "libbox64.dylib libzomdroid.dylib libzomdroidlinker.dylib"
+          MIN_TIPA_SIZE_BYTES: "1048576"
         run: |
           chmod +x ios/scripts/build_tipa.sh
           ios/scripts/build_tipa.sh
@@ -64,9 +71,3 @@ jobs:
           name: zomdroid-ios-runtime-tipa
           path: artifacts/ZomdroidIOSRuntimePoC.tipa
           if-no-files-found: warn
-
-      - name: Fail if runtime probe failed
-        if: steps.runtime_probe.outcome != 'success'
-        run: |
-          echo "Runtime probe failed. Check artifact: zomdroid-ios-runtime-logs"
-          exit 1

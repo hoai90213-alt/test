@@ -4,7 +4,7 @@ Thu muc nay la ban copy doc lap de day len GitHub.
 
 ## Tinh trang hien tai
 
-- Da co workflow GitHub Actions build `.tipa` bootstrap:
+- Da co workflow GitHub Actions build runtime `.tipa` day du (strict):
   - `.github/workflows/build-ios-tipa.yml`
 - Da co workflow runtime probe + runtime `.tipa` (manual):
   - `.github/workflows/build-ios-runtime-tipa.yml`
@@ -16,7 +16,9 @@ Thu muc nay la ban copy doc lap de day len GitHub.
 - Da co script build native runtime iOS probe:
   - `ios/scripts/build_runtime_probe.sh`
 - Artifact dau ra tu workflow:
-  - `artifacts/ZomdroidIOSPoC.tipa`
+  - `artifacts/ZomdroidIOSRuntimePoC.tipa`
+  - `artifacts/runtime-libs/*`
+  - `artifacts/runtime-probe-build.log`
 
 ## Quan trong truoc khi build
 
@@ -66,13 +68,16 @@ git submodule update --init --recursive
 
 ## Chay workflow tren GitHub
 
-1. Build nhanh bootstrap `.tipa`:
+1. Build runtime `.tipa` day du (khuyen dung):
 - Action: `build-ios-tipa`
+- Workflow nay se:
+  - build native runtime dylibs truoc,
+  - fail neu thieu `libbox64.dylib`, `libzomdroid.dylib`, `libzomdroidlinker.dylib`,
+  - fail neu `.tipa` qua nho (chan artifact kieu "10KB").
 
-2. Build runtime probe + runtime `.tipa`:
+2. Build runtime probe + runtime `.tipa` (manual debug):
 - Action: `build-ios-runtime-tipa`
 - Workflow nay se:
   - build native runtime probe (cmake iOS),
-  - thu dong goi runtime libs vao app,
-  - upload log va artifact de debug.
-- Neu runtime probe fail: workflow van co artifact log/attempted tipa roi moi danh fail o step cuoi.
+  - dong goi runtime libs vao app theo che do strict,
+  - upload log + runtime libs + `.tipa` de debug.

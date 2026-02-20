@@ -13,29 +13,67 @@ on:
 jobs:
   build-tipa:
     runs-on: macos-14
+    timeout-minutes: 90
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install ldid
+      - name: Install tools
         run: |
           if ! command -v ldid >/dev/null 2>&1; then
             brew install ldid
           fi
+          if ! command -v cmake >/dev/null 2>&1; then
+            brew install cmake
+          fi
 
-      - name: Build .tipa
+      - name: Build runtime dylibs
         env:
-          APP_NAME: ZomdroidIOSPoC
-          BUNDLE_ID: org.zomdroid.iospoc
           MIN_IOS: "14.0"
+          BUILD_CONFIG: Release
+          ZOMDROID_BUILD_GLFW: "OFF"
+          ZOMDROID_BUILD_ANDROID_JNI: "OFF"
+          ZOMDROID_BUILD_LINKER: "ON"
+          REQUIRED_RUNTIME_LIBS: "libbox64.dylib libzomdroid.dylib libzomdroidlinker.dylib"
+        run: |
+          chmod +x ios/scripts/build_runtime_probe.sh
+          ios/scripts/build_runtime_probe.sh
+
+      - name: Build full runtime .tipa
+        env:
+          APP_NAME: ZomdroidIOSRuntimePoC
+          BUNDLE_ID: org.zomdroid.iosruntimepoc
+          MIN_IOS: "14.0"
+          RUNTIME_LIB_DIR: artifacts/runtime-libs
+          REQUIRE_RUNTIME_LIBS: "1"
+          REQUIRED_RUNTIME_LIBS: "libbox64.dylib libzomdroid.dylib libzomdroidlinker.dylib"
+          MIN_TIPA_SIZE_BYTES: "1048576"
         run: |
           chmod +x ios/scripts/build_tipa.sh
           ios/scripts/build_tipa.sh
 
-      - name: Upload artifact
+      - name: Upload runtime logs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: zomdroid-ios-poc-tipa
-          path: artifacts/ZomdroidIOSPoC.tipa
+          name: zomdroid-ios-runtime-logs
+          path: artifacts/runtime-probe-build.log
+          if-no-files-found: warn
+
+      - name: Upload runtime libs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zomdroid-ios-runtime-libs
+          path: artifacts/runtime-libs
+          if-no-files-found: warn
+
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zomdroid-ios-runtime-tipa
+          path: artifacts/ZomdroidIOSRuntimePoC.tipa
+          if-no-files-found: warn
