@@ -17,8 +17,10 @@
 
 #if defined(__APPLE__)
 #define ARM64_UC_MCONTEXT(pctx) ((pctx)->uc_mcontext)
+#define ARM64_UC_PSTATE(pctx) (ARM64_UC_MCONTEXT(pctx)->__ss.__cpsr)
 #else
 #define ARM64_UC_MCONTEXT(pctx) (&((pctx)->uc_mcontext))
+#define ARM64_UC_PSTATE(pctx) (ARM64_UC_MCONTEXT(pctx)->pstate)
 #endif
 
 //order might be important, so define SUPER for the right one
@@ -313,19 +315,19 @@ void adjust_arch(dynablock_t* db, x64emu_t* emu, ucontext_t* p, uintptr_t x64pc)
             //return;
         }
         if(flags->nf) {
-            CONDITIONAL_SET_FLAG(ARM64_UC_MCONTEXT(p)->pstate&(1<<NZCV_N), F_SF);
+            CONDITIONAL_SET_FLAG(ARM64_UC_PSTATE(p)&(1<<NZCV_N), F_SF);
         }
         if(flags->vf) {
-            CONDITIONAL_SET_FLAG(ARM64_UC_MCONTEXT(p)->pstate&(1<<NZCV_V), F_OF);
+            CONDITIONAL_SET_FLAG(ARM64_UC_PSTATE(p)&(1<<NZCV_V), F_OF);
         }
         if(flags->eq) {
-            CONDITIONAL_SET_FLAG(ARM64_UC_MCONTEXT(p)->pstate&(1<<NZCV_Z), F_ZF);
+            CONDITIONAL_SET_FLAG(ARM64_UC_PSTATE(p)&(1<<NZCV_Z), F_ZF);
         }
         if(flags->cf) {
             if(flags->inv_cf) {
-                CONDITIONAL_SET_FLAG((ARM64_UC_MCONTEXT(p)->pstate&(1<<NZCV_C))==0, F_CF);
+                CONDITIONAL_SET_FLAG((ARM64_UC_PSTATE(p)&(1<<NZCV_C))==0, F_CF);
             } else {
-                CONDITIONAL_SET_FLAG(ARM64_UC_MCONTEXT(p)->pstate&(1<<NZCV_C), F_CF);
+                CONDITIONAL_SET_FLAG(ARM64_UC_PSTATE(p)&(1<<NZCV_C), F_CF);
             }
         }
     }
