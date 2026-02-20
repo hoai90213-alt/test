@@ -24,6 +24,15 @@
 
 #include "modrm.h"
 
+#if defined(__APPLE__)
+static inline void box64_sincos(double value, double* s, double* c)
+{
+    *s = sin(value);
+    *c = cos(value);
+}
+#define sincos box64_sincos
+#endif
+
 #ifdef TEST_INTERPRETER
 uintptr_t TestD9(x64test_t *test, rex_t rex, uintptr_t addr, uintptr_t offs)
 #else

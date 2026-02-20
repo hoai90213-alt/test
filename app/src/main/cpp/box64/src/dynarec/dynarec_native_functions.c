@@ -26,6 +26,15 @@
 #include "bridge.h"
 #include "dynarec_native_functions.h"
 
+#if defined(__APPLE__)
+static inline void box64_sincos(double value, double* s, double* c)
+{
+    *s = sin(value);
+    *c = cos(value);
+}
+#define sincos box64_sincos
+#endif
+
 void native_fstp(x64emu_t* emu, void* p)
 {
     if(ST0.q!=STld(0).uref)
