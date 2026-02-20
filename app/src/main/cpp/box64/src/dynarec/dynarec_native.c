@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
+#include <alloca.h>
 
 #include "debug.h"
 #include "box64context.h"
