@@ -2373,7 +2373,17 @@ EXPORT int my_scandir(x64emu_t *emu, void* dir, void* namelist, void* sel, void*
 EXPORT int my_scandirat(x64emu_t *emu, int dirfd, void* dirp, void* namelist, void* sel, void* comp)
 {
     (void)emu;
+#if defined(__APPLE__)
+    (void)dirfd;
+    (void)dirp;
+    (void)namelist;
+    (void)sel;
+    (void)comp;
+    errno = ENOSYS;
+    return -1;
+#else
     return scandirat(dirfd, dirp, namelist, findfilter64Fct(sel), findcompare64Fct(comp));
+#endif
 }
 
 EXPORT int my_ftw64(x64emu_t* emu, void* filename, void* func, int descriptors)
