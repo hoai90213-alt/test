@@ -67,6 +67,31 @@ static inline int pthread_setattr_default_np(const pthread_attr_t* attr)
     errno = ENOSYS;
     return -1;
 }
+
+#ifndef PTHREAD_MUTEX_STALLED
+#define PTHREAD_MUTEX_STALLED 0
+#endif
+#ifndef PTHREAD_MUTEX_ROBUST
+#define PTHREAD_MUTEX_ROBUST 1
+#endif
+
+static inline int pthread_mutexattr_getrobust(const pthread_mutexattr_t* attr, int* robust)
+{
+    (void)attr;
+    if (robust) {
+        *robust = PTHREAD_MUTEX_STALLED;
+    }
+    errno = ENOSYS;
+    return -1;
+}
+
+static inline int pthread_mutexattr_setrobust(pthread_mutexattr_t* attr, int robust)
+{
+    (void)attr;
+    (void)robust;
+    errno = ENOSYS;
+    return -1;
+}
 #endif
 #endif
 

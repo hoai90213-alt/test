@@ -20,9 +20,10 @@
 #define MAP_GROWSDOWN 0
 #endif
 
-#ifndef mmap64
-#define mmap64 mmap
-#endif
+static inline void* mmap64(void* addr, size_t length, int prot, int flags, int fd, off_t offset)
+{
+    return mmap(addr, length, prot, flags, fd, offset);
+}
 #endif
 
 #endif
