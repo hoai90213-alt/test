@@ -66,6 +66,21 @@ git submodule update --init --recursive
 - Noi runtime game vao iOS shell de di tu bootstrap app sang moc Java entrypoint.
 - Sau do tiep tuc huong den moc vao duoc main menu.
 
+## Cau hinh launcher iOS hien tai (PoC Launch Runtime)
+
+Bootstrap iOS da co nut `Launch Runtime` va thu goi runtime that.
+Mac dinh no doc duong dan trong sandbox iOS:
+
+- `Documents/zomdroid/game`
+- `Documents/zomdroid/deps`
+- `Documents/zomdroid/config`
+
+Neu can tuy bien:
+
+- `Documents/zomdroid/config/main_class.txt` (mac dinh: `zombie/gameStates/MainScreenState`)
+- `Documents/zomdroid/config/jvm_args.txt` (moi dong 1 JVM arg)
+- `Documents/zomdroid/config/app_args.txt` (moi dong 1 app arg)
+
 ## Chay workflow tren GitHub
 
 1. Build runtime `.tipa` day du (khuyen dung):

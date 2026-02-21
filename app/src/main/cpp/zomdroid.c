@@ -64,6 +64,44 @@ static const char* zomdroid_pick_jvm_lib_name() {
 #endif
 }
 
+static const char* zomdroid_resolve_library_path(const char* search_paths,
+                                                  const char* library_name,
+                                                  char* resolved_path,
+                                                  size_t resolved_path_size) {
+    if (!library_name || library_name[0] == '\0') {
+        return library_name;
+    }
+    if (strchr(library_name, '/')) {
+        return library_name;
+    }
+    if (!search_paths || search_paths[0] == '\0' || !resolved_path || resolved_path_size == 0) {
+        return library_name;
+    }
+
+    char* paths_copy = strdup(search_paths);
+    if (!paths_copy) {
+        return library_name;
+    }
+
+    char* save_ptr = NULL;
+    char* token = strtok_r(paths_copy, ":", &save_ptr);
+    while (token) {
+        if (token[0] != '\0') {
+            int written = snprintf(resolved_path, resolved_path_size, "%s/%s", token, library_name);
+            if (written > 0 && (size_t)written < resolved_path_size) {
+                if (access(resolved_path, R_OK) == 0) {
+                    free(paths_copy);
+                    return resolved_path;
+                }
+            }
+        }
+        token = strtok_r(NULL, ":", &save_ptr);
+    }
+
+    free(paths_copy);
+    return library_name;
+}
+
 static long get_mem_available_mb() {
 #if defined(__ANDROID__) || defined(__linux__)
     FILE* f = fopen("/proc/meminfo", "r");
@@ -172,10 +210,8 @@ static void create_jvm_and_launch_main(int jvm_argc, const char** jvm_argv, cons
         jvm_lib_name = jvm_lib_override;
     } else {
         const char* lib_dir = getenv("ZOMDROID_LIBRARY_DIR");
-        if (lib_dir && lib_dir[0]) {
-            snprintf(jvm_lib_path, sizeof(jvm_lib_path), "%s/%s", lib_dir, jvm_lib_name);
-            jvm_lib_name = jvm_lib_path;
-        }
+        jvm_lib_name = zomdroid_resolve_library_path(lib_dir, jvm_lib_name,
+                                                     jvm_lib_path, sizeof(jvm_lib_path));
     }
     void* libjvm = dlopen(jvm_lib_name, RTLD_GLOBAL | RTLD_NOW);
 #endif
@@ -325,12 +361,8 @@ static int load_linker_hook() {
     if (linker_lib_override == NULL || linker_lib_override[0] == '\0') {
         snprintf(linker_lib_name_default, sizeof(linker_lib_name_default), "libzomdroidlinker%s", ZOMDROID_SHARED_LIB_SUFFIX);
         const char* lib_dir = getenv("ZOMDROID_LIBRARY_DIR");
-        if (lib_dir && lib_dir[0]) {
-            snprintf(linker_lib_name_buf, sizeof(linker_lib_name_buf), "%s/%s", lib_dir, linker_lib_name_default);
-            linker_lib_name = linker_lib_name_buf;
-        } else {
-            linker_lib_name = linker_lib_name_default;
-        }
+        linker_lib_name = zomdroid_resolve_library_path(lib_dir, linker_lib_name_default,
+                                                        linker_lib_name_buf, sizeof(linker_lib_name_buf));
     } else {
         linker_lib_name = linker_lib_override;
     }

@@ -27,10 +27,22 @@ This file tracks practical progress toward the first playable target: reaching t
   - `ios/scripts/build_runtime_probe.sh`
 - Added iOS bootstrap runtime probe UI:
   - `ios/bootstrap/main.m` now checks bundled runtime dylibs and reports load status.
+- Upgraded iOS bootstrap to a launch-capable PoC:
+  - `ios/bootstrap/main.m` now has a `Launch Runtime` button.
+  - It attempts `zomdroid_init` and dispatches `zomdroid_start_game` with configurable args.
+  - It reads optional config files from `Documents/zomdroid/config/`:
+    - `main_class.txt`
+    - `jvm_args.txt`
+    - `app_args.txt`
+  - Default paths expected by launcher:
+    - `Documents/zomdroid/game`
+    - `Documents/zomdroid/deps`
 - Added non-Android-safe branch for `android_load_sphal_library`:
   - `app/src/main/cpp/linker.c`
 - Kept Android JNI surface path intact while making non-Android stub explicit:
   - `app/src/main/cpp/zomdroid_jni.c`
+- Improved non-Android library resolution:
+  - `app/src/main/cpp/zomdroid.c` now resolves `ZOMDROID_LIBRARY_DIR` as a `:`-separated search path for `libjvm` and `libzomdroidlinker`.
 
 ## Still required for main menu on iOS
 
