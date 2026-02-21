@@ -131,6 +131,7 @@ typedef void* (*pFpip_t)(void*, int, void*);
 #define scandir64 scandir
 #define ftw64 ftw
 #define nftw64 nftw
+#define off64_t off_t
 #define execvpe execve
 #endif
 
@@ -4134,6 +4135,7 @@ __attribute__((weak)) uint32_t arc4random()
     return;     // do not unload...
 
 #if defined(BOX64_APPLE_STAT64_REMAP)
+#undef off64_t
 #undef execvpe
 #undef nftw64
 #undef ftw64

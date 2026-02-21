@@ -139,6 +139,7 @@ extern char** environ;
 #define alphasort64 alphasort
 #define getrlimit64 getrlimit
 #define setrlimit64 setrlimit
+#define off64_t off_t
 #define execvpe execve
 #endif
 
@@ -3483,6 +3484,7 @@ void libc32_net_init();
     my32_stderr = to_ptrv(my__IO_2_1_stderr_);
 
 #if defined(BOX64_APPLE_STAT64_REMAP)
+#undef off64_t
 #undef execvpe
 #undef setrlimit64
 #undef getrlimit64
