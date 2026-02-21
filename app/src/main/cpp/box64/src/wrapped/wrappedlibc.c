@@ -3923,6 +3923,18 @@ static int clone_fn(void* p)
 EXPORT int my_clone(x64emu_t* emu, void* fn, void* stack, int flags, void* args, void* parent, void* tls, void* child)
 {
     printf_log(LOG_DEBUG, "my_clone(fn:%p(%s), stack:%p, 0x%x, args:%p, %p, %p, %p)", fn, getAddrFunctionName((uintptr_t)fn), stack, flags, args, parent, tls, child);
+#if defined(__APPLE__)
+    (void)emu;
+    (void)fn;
+    (void)stack;
+    (void)flags;
+    (void)args;
+    (void)parent;
+    (void)tls;
+    (void)child;
+    errno = ENOSYS;
+    return -1;
+#else
     void* mystack = NULL;
     clone_arg_t* arg = (clone_arg_t*)box_calloc(1, sizeof(clone_arg_t));
     x64emu_t * newemu = NewX64Emu(emu->context, R_RIP, (uintptr_t)stack, 0, 0);
@@ -3949,6 +3961,7 @@ EXPORT int my_clone(x64emu_t* emu, void* fn, void* stack, int flags, void* args,
         flags&=~(CLONE_VM|CLONE_VFORK|CLONE_SETTLS);
     int64_t ret = clone(clone_fn, (void*)((uintptr_t)mystack+1024*1024), flags, arg, parent, NULL, child);
     return (uintptr_t)ret;
+#endif
 }
 
 EXPORT void my___cxa_pure_virtual(x64emu_t* emu)
