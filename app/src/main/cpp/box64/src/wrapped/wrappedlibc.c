@@ -49,6 +49,19 @@
 extern char** environ;
 #endif
 
+#ifndef CLONE_VM
+#define CLONE_VM 0
+#endif
+#ifndef CLONE_VFORK
+#define CLONE_VFORK 0
+#endif
+#ifndef CLONE_SETTLS
+#define CLONE_SETTLS 0
+#endif
+#ifndef CLONE_NEWUSER
+#define CLONE_NEWUSER 0
+#endif
+
 #include "wrappedlibs.h"
 
 #include "box64stack.h"
