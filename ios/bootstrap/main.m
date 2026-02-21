@@ -29,6 +29,12 @@ typedef struct {
   char** app_argv;
 } ZDLaunchContext;
 
+typedef NS_ENUM(NSInteger, ZDImportTarget) {
+  ZDImportTargetNone = 0,
+  ZDImportTargetGame = 1,
+  ZDImportTargetDeps = 2,
+};
+
 static NSString* ZDFrameworksPath(void) {
   return [NSBundle.mainBundle.bundlePath stringByAppendingPathComponent:@"Frameworks"];
 }
@@ -321,6 +327,146 @@ static void ZDSetEnv(NSString* key, NSString* value) {
   setenv(key.UTF8String, value.UTF8String, 1);
 }
 
+static BOOL ZDClearDirectoryContents(NSString* directoryPath, NSError** error) {
+  NSFileManager* fileManager = [NSFileManager defaultManager];
+  [fileManager createDirectoryAtPath:directoryPath
+         withIntermediateDirectories:YES
+                          attributes:nil
+                               error:error];
+  if (error != nil && *error != nil) {
+    return NO;
+  }
+
+  NSArray<NSString*>* entries = [fileManager contentsOfDirectoryAtPath:directoryPath error:error];
+  if (entries == nil) {
+    return NO;
+  }
+  for (NSString* entry in entries) {
+    NSString* path = [directoryPath stringByAppendingPathComponent:entry];
+    if (![fileManager removeItemAtPath:path error:error]) {
+      return NO;
+    }
+  }
+  return YES;
+}
+
+static BOOL ZDImportFolderFromURLToPath(NSURL* sourceURL,
+                                        NSString* destinationPath,
+                                        NSString* label,
+                                        NSMutableArray<NSString*>* lines,
+                                        NSError** outError) {
+  if (sourceURL == nil || destinationPath == nil || destinationPath.length == 0) {
+    if (outError != nil) {
+      *outError = [NSError errorWithDomain:@"ZomdroidImport"
+                                      code:1
+                                  userInfo:@{NSLocalizedDescriptionKey : @"Invalid import source or destination"}];
+    }
+    return NO;
+  }
+
+  BOOL securityScope = [sourceURL startAccessingSecurityScopedResource];
+  @try {
+    NSError* clearError = nil;
+    if (!ZDClearDirectoryContents(destinationPath, &clearError)) {
+      if (outError != nil) {
+        *outError = clearError;
+      }
+      return NO;
+    }
+
+    NSFileManager* fileManager = [NSFileManager defaultManager];
+    __block NSError* copyError = nil;
+    __block NSUInteger fileCount = 0;
+    __block NSUInteger dirCount = 0;
+    NSFileCoordinator* coordinator = [[NSFileCoordinator alloc] initWithFilePresenter:nil];
+    NSError* coordinatorError = nil;
+    [coordinator coordinateReadingItemAtURL:sourceURL
+                                    options:NSFileCoordinatorReadingWithoutChanges
+                                      error:&coordinatorError
+                                 byAccessor:^(NSURL* newURL) {
+      NSString* basePath = newURL.path;
+      NSDirectoryEnumerator<NSURL*>* enumerator =
+          [fileManager enumeratorAtURL:newURL
+             includingPropertiesForKeys:@[NSURLIsDirectoryKey]
+                                options:0
+                           errorHandler:^BOOL(NSURL* url, NSError* error) {
+        (void)url;
+        copyError = error;
+        return NO;
+      }];
+
+      for (NSURL* itemURL in enumerator) {
+        NSNumber* isDirectory = nil;
+        [itemURL getResourceValue:&isDirectory forKey:NSURLIsDirectoryKey error:nil];
+
+        NSString* itemPath = itemURL.path;
+        if (itemPath.length <= basePath.length) {
+          continue;
+        }
+        NSString* relativePath = [itemPath substringFromIndex:basePath.length];
+        if ([relativePath hasPrefix:@"/"]) {
+          relativePath = [relativePath substringFromIndex:1];
+        }
+        if (relativePath.length == 0) {
+          continue;
+        }
+
+        NSString* destinationItemPath = [destinationPath stringByAppendingPathComponent:relativePath];
+        if (isDirectory.boolValue) {
+          if (![fileManager createDirectoryAtPath:destinationItemPath
+                      withIntermediateDirectories:YES
+                                       attributes:nil
+                                            error:&copyError]) {
+            break;
+          }
+          dirCount += 1;
+          continue;
+        }
+
+        NSString* parentPath = [destinationItemPath stringByDeletingLastPathComponent];
+        if (![fileManager createDirectoryAtPath:parentPath
+                    withIntermediateDirectories:YES
+                                     attributes:nil
+                                          error:&copyError]) {
+          break;
+        }
+        if ([fileManager fileExistsAtPath:destinationItemPath]) {
+          [fileManager removeItemAtPath:destinationItemPath error:nil];
+        }
+        if (![fileManager copyItemAtURL:itemURL
+                                  toURL:[NSURL fileURLWithPath:destinationItemPath]
+                                  error:&copyError]) {
+          break;
+        }
+        fileCount += 1;
+      }
+    }];
+
+    if (coordinatorError != nil) {
+      if (outError != nil) {
+        *outError = coordinatorError;
+      }
+      return NO;
+    }
+    if (copyError != nil) {
+      if (outError != nil) {
+        *outError = copyError;
+      }
+      return NO;
+    }
+
+    [lines addObject:[NSString stringWithFormat:@"[ok] Imported %@ to %@", label ?: @"folder", destinationPath]];
+    [lines addObject:[NSString stringWithFormat:@"[ok] created_dirs=%lu copied_files=%lu",
+                                                (unsigned long)dirCount,
+                                                (unsigned long)fileCount]];
+    return YES;
+  } @finally {
+    if (securityScope) {
+      [sourceURL stopAccessingSecurityScopedResource];
+    }
+  }
+}
+
 static NSString* ZDProbeRuntimeLibraries(void) {
   NSArray<NSString*>* libraryNames = @[
     @"libbox64.dylib",
@@ -549,10 +695,14 @@ static NSString* ZDPrepareAndLaunchRuntime(void) {
   return [lines componentsJoinedByString:@"\n"];
 }
 
-@interface ZDAppDelegate : UIResponder <UIApplicationDelegate>
+@interface ZDAppDelegate : UIResponder <UIApplicationDelegate, UIDocumentPickerDelegate>
 @property(nonatomic, strong) UIWindow* window;
 @property(nonatomic, strong) UITextView* statusView;
 @property(nonatomic, strong) UIButton* launchButton;
+@property(nonatomic, strong) UIButton* importGameButton;
+@property(nonatomic, strong) UIButton* importDepsButton;
+@property(nonatomic, strong) UIViewController* rootViewController;
+@property(nonatomic, assign) ZDImportTarget pendingImportTarget;
 @end
 
 @implementation ZDAppDelegate
@@ -566,8 +716,34 @@ static NSString* ZDPrepareAndLaunchRuntime(void) {
   }
 }
 
+- (void)setControlsEnabled:(BOOL)enabled {
+  self.launchButton.enabled = enabled;
+  self.importGameButton.enabled = enabled;
+  self.importDepsButton.enabled = enabled;
+}
+
+- (void)presentFolderPickerForTarget:(ZDImportTarget)target {
+  self.pendingImportTarget = target;
+  UIDocumentPickerViewController* picker =
+      [[UIDocumentPickerViewController alloc] initWithDocumentTypes:@[@"public.folder"]
+                                                             inMode:UIDocumentPickerModeOpen];
+  picker.delegate = self;
+  picker.allowsMultipleSelection = NO;
+  [self.rootViewController presentViewController:picker animated:YES completion:nil];
+}
+
+- (void)onImportGameTapped {
+  [self appendStatus:@"Select GAME folder in Files..."];
+  [self presentFolderPickerForTarget:ZDImportTargetGame];
+}
+
+- (void)onImportDepsTapped {
+  [self appendStatus:@"Select DEPS folder in Files..."];
+  [self presentFolderPickerForTarget:ZDImportTargetDeps];
+}
+
 - (void)onLaunchTapped {
-  self.launchButton.enabled = NO;
+  [self setControlsEnabled:NO];
   [self appendStatus:@"Launching runtime..."];
   ZDEnsureFilesystemLayout();
   [self appendStatus:[NSString stringWithFormat:@"Filesystem status:\n%@", ZDFilesystemStatus()]];
@@ -576,7 +752,56 @@ static NSString* ZDPrepareAndLaunchRuntime(void) {
     NSString* launchResult = ZDPrepareAndLaunchRuntime();
     dispatch_async(dispatch_get_main_queue(), ^{
       [self appendStatus:launchResult];
-      self.launchButton.enabled = YES;
+      [self setControlsEnabled:YES];
+    });
+  });
+}
+
+- (void)documentPickerWasCancelled:(UIDocumentPickerViewController*)controller {
+  (void)controller;
+  self.pendingImportTarget = ZDImportTargetNone;
+  [self appendStatus:@"[info] Import cancelled"];
+}
+
+- (void)documentPicker:(UIDocumentPickerViewController*)controller didPickDocumentsAtURLs:(NSArray<NSURL*>*)urls {
+  (void)controller;
+  NSURL* selectedURL = urls.firstObject;
+  ZDImportTarget target = self.pendingImportTarget;
+  self.pendingImportTarget = ZDImportTargetNone;
+  if (selectedURL == nil || target == ZDImportTargetNone) {
+    [self appendStatus:@"[error] No folder selected"];
+    return;
+  }
+
+  NSString* targetPath = nil;
+  NSString* targetLabel = nil;
+  if (target == ZDImportTargetGame) {
+    targetPath = ZDGamePath();
+    targetLabel = @"game";
+  } else if (target == ZDImportTargetDeps) {
+    targetPath = ZDDepsPath();
+    targetLabel = @"deps";
+  }
+  if (targetPath == nil) {
+    [self appendStatus:@"[error] Unknown import target"];
+    return;
+  }
+
+  [self appendStatus:[NSString stringWithFormat:@"Importing %@ from %@", targetLabel, selectedURL.path ?: selectedURL.absoluteString]];
+  [self setControlsEnabled:NO];
+  dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+    NSMutableArray<NSString*>* importLines = [NSMutableArray array];
+    NSError* importError = nil;
+    BOOL ok = ZDImportFolderFromURLToPath(selectedURL, targetPath, targetLabel, importLines, &importError);
+    dispatch_async(dispatch_get_main_queue(), ^{
+      if (ok) {
+        [self appendStatus:[importLines componentsJoinedByString:@"\n"]];
+      } else {
+        NSString* errorText = importError.localizedDescription ?: @"unknown import error";
+        [self appendStatus:[NSString stringWithFormat:@"[error] Import %@ failed: %@", targetLabel, errorText]];
+      }
+      [self appendStatus:[NSString stringWithFormat:@"Filesystem status:\n%@", ZDFilesystemStatus()]];
+      [self setControlsEnabled:YES];
     });
   });
 }
@@ -590,6 +815,7 @@ static NSString* ZDPrepareAndLaunchRuntime(void) {
 
   UIViewController* rootViewController = [UIViewController new];
   rootViewController.view.backgroundColor = [UIColor systemBackgroundColor];
+  self.rootViewController = rootViewController;
 
   UILabel* titleLabel = [UILabel new];
   titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
@@ -605,6 +831,20 @@ static NSString* ZDPrepareAndLaunchRuntime(void) {
   [launchButton addTarget:self action:@selector(onLaunchTapped) forControlEvents:UIControlEventTouchUpInside];
   self.launchButton = launchButton;
 
+  UIButton* importGameButton = [UIButton buttonWithType:UIButtonTypeSystem];
+  importGameButton.translatesAutoresizingMaskIntoConstraints = NO;
+  importGameButton.titleLabel.font = [UIFont systemFontOfSize:16 weight:UIFontWeightSemibold];
+  [importGameButton setTitle:@"Import Game Folder" forState:UIControlStateNormal];
+  [importGameButton addTarget:self action:@selector(onImportGameTapped) forControlEvents:UIControlEventTouchUpInside];
+  self.importGameButton = importGameButton;
+
+  UIButton* importDepsButton = [UIButton buttonWithType:UIButtonTypeSystem];
+  importDepsButton.translatesAutoresizingMaskIntoConstraints = NO;
+  importDepsButton.titleLabel.font = [UIFont systemFontOfSize:16 weight:UIFontWeightSemibold];
+  [importDepsButton setTitle:@"Import Deps Folder" forState:UIControlStateNormal];
+  [importDepsButton addTarget:self action:@selector(onImportDepsTapped) forControlEvents:UIControlEventTouchUpInside];
+  self.importDepsButton = importDepsButton;
+
   UITextView* statusView = [UITextView new];
   statusView.translatesAutoresizingMaskIntoConstraints = NO;
   statusView.editable = NO;
@@ -614,6 +854,8 @@ static NSString* ZDPrepareAndLaunchRuntime(void) {
   self.statusView = statusView;
 
   [rootViewController.view addSubview:titleLabel];
+  [rootViewController.view addSubview:importGameButton];
+  [rootViewController.view addSubview:importDepsButton];
   [rootViewController.view addSubview:launchButton];
   [rootViewController.view addSubview:statusView];
 
@@ -624,7 +866,13 @@ static NSString* ZDPrepareAndLaunchRuntime(void) {
     [titleLabel.leadingAnchor constraintGreaterThanOrEqualToAnchor:guide.leadingAnchor constant:16.0],
     [titleLabel.trailingAnchor constraintLessThanOrEqualToAnchor:guide.trailingAnchor constant:-16.0],
 
-    [launchButton.topAnchor constraintEqualToAnchor:titleLabel.bottomAnchor constant:12.0],
+    [importGameButton.topAnchor constraintEqualToAnchor:titleLabel.bottomAnchor constant:12.0],
+    [importGameButton.centerXAnchor constraintEqualToAnchor:guide.centerXAnchor],
+
+    [importDepsButton.topAnchor constraintEqualToAnchor:importGameButton.bottomAnchor constant:10.0],
+    [importDepsButton.centerXAnchor constraintEqualToAnchor:guide.centerXAnchor],
+
+    [launchButton.topAnchor constraintEqualToAnchor:importDepsButton.bottomAnchor constant:12.0],
     [launchButton.centerXAnchor constraintEqualToAnchor:guide.centerXAnchor],
 
     [statusView.topAnchor constraintEqualToAnchor:launchButton.bottomAnchor constant:12.0],
@@ -638,7 +886,7 @@ static NSString* ZDPrepareAndLaunchRuntime(void) {
   NSString* documentsPath = ZDDocumentsPath();
   NSString* filesystemStatus = ZDFilesystemStatus();
   NSString* intro = [NSString stringWithFormat:
-                     @"Documents=%@\n\nFilesystem status:\n%@\n\nRuntime probe:\n%@\n\nExpected paths:\n- %@\n- %@\n- %@",
+                     @"Documents=%@\nUse Import Game Folder / Import Deps Folder first.\n\nFilesystem status:\n%@\n\nRuntime probe:\n%@\n\nExpected paths:\n- %@\n- %@\n- %@",
                      documentsPath,
                      filesystemStatus,
                      runtimeStatus,
