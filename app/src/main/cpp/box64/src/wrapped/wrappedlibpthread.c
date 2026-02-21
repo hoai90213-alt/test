@@ -54,7 +54,10 @@ EXPORT int32_t my_pthread_atfork(x64emu_t *emu, void* prepare, void* parent, voi
     
     return 0;
 }
-EXPORT int32_t my___pthread_atfork(x64emu_t *emu, void* prepare, void* parent, void* child) __attribute__((alias("my_pthread_atfork")));
+EXPORT int32_t my___pthread_atfork(x64emu_t *emu, void* prepare, void* parent, void* child)
+{
+    return my_pthread_atfork(emu, prepare, parent, child);
+}
 
 EXPORT void my___pthread_initialize()
 {
