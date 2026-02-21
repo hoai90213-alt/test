@@ -1,6 +1,7 @@
 #import <UIKit/UIKit.h>
 #import <dispatch/dispatch.h>
 #include <dlfcn.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -327,6 +328,37 @@ static void ZDSetEnv(NSString* key, NSString* value) {
   setenv(key.UTF8String, value.UTF8String, 1);
 }
 
+static NSString* ZDReadMagicHex4(NSString* path) {
+  NSData* data = [NSData dataWithContentsOfFile:path options:0 error:nil];
+  if (data == nil || data.length < 4) {
+    return @"????";
+  }
+  const uint8_t* bytes = (const uint8_t*)data.bytes;
+  return [NSString stringWithFormat:@"%02X-%02X-%02X-%02X", bytes[0], bytes[1], bytes[2], bytes[3]];
+}
+
+static BOOL ZDIsLikelyMachOFile(NSString* path) {
+  NSData* data = [NSData dataWithContentsOfFile:path options:0 error:nil];
+  if (data == nil || data.length < 4) {
+    return NO;
+  }
+  const uint8_t* b = (const uint8_t*)data.bytes;
+  uint32_t m = ((uint32_t)b[0] << 24) | ((uint32_t)b[1] << 16) | ((uint32_t)b[2] << 8) | ((uint32_t)b[3]);
+  switch (m) {
+    case 0xFEEDFACEu:
+    case 0xCEFAEDFEu:
+    case 0xFEEDFACFu:
+    case 0xCFFAEDFEu:
+    case 0xCAFEBABEu:
+    case 0xBEBAFECAu:
+    case 0xCAFEBABFu:
+    case 0xBFBAFECAu:
+      return YES;
+    default:
+      return NO;
+  }
+}
+
 static BOOL ZDClearDirectoryContents(NSString* directoryPath, NSError** error) {
   NSFileManager* fileManager = [NSFileManager defaultManager];
   [fileManager createDirectoryAtPath:directoryPath
@@ -512,6 +544,7 @@ static NSString* ZDPrepareAndLaunchRuntime(void) {
   NSString* javaLibPathLwjgl = [depsPath stringByAppendingPathComponent:@"libs/android-arm64-v8a/lwjgl-3.3.6"];
   NSString* javaLibPathFmod = [depsPath stringByAppendingPathComponent:@"libs/android-arm64-v8a/fmod-2.02.24"];
   NSString* jreLibPath = [depsPath stringByAppendingPathComponent:@"jre/lib/server/libjvm.dylib"];
+  NSString* jreLibPathSo = [depsPath stringByAppendingPathComponent:@"jre/lib/server/libjvm.so"];
   NSString* linkerLibPath = [frameworksPath stringByAppendingPathComponent:@"libzomdroidlinker.dylib"];
   NSString* librarySearchPath = [NSString stringWithFormat:@"%@:%@:%@:%@",
                                  frameworksPath,
@@ -565,15 +598,23 @@ static NSString* ZDPrepareAndLaunchRuntime(void) {
   ZDSetEnv(@"ZOMDROID_RENDERER", @"GL4ES");
   ZDSetEnv(@"ZOMDROID_LIBRARY_DIR", librarySearchPath);
   ZDSetEnv(@"ZOMDROID_LINKER_LIB", linkerLibPath);
+  NSString* selectedJvmPath = nil;
   if (ZDFileExists(jreLibPath)) {
-    ZDSetEnv(@"ZOMDROID_JVM_LIB", jreLibPath);
+    selectedJvmPath = jreLibPath;
+  } else if (ZDFileExists(jreLibPathSo)) {
+    selectedJvmPath = jreLibPathSo;
   }
-
-  int initResult = zomdroidInit();
-  if (initResult != 0) {
-    [lines addObject:[NSString stringWithFormat:@"[error] zomdroid_init failed: %d", initResult]];
+  if (selectedJvmPath == nil) {
+    [lines addObject:[NSString stringWithFormat:@"[error] Missing JVM library: %@ (or libjvm.so)", jreLibPath]];
     return [lines componentsJoinedByString:@"\n"];
   }
+  NSString* jvmMagic = ZDReadMagicHex4(selectedJvmPath);
+  if (!ZDIsLikelyMachOFile(selectedJvmPath)) {
+    [lines addObject:[NSString stringWithFormat:@"[error] JVM binary is not iOS Mach-O: %@ (magic=%@)", selectedJvmPath, jvmMagic]];
+    [lines addObject:@"[hint] Current file looks like Linux ELF. Use iOS arm64 Mach-O libjvm to avoid crash."];
+    return [lines componentsJoinedByString:@"\n"];
+  }
+  ZDSetEnv(@"ZOMDROID_JVM_LIB", selectedJvmPath);
 
   NSString* mainClass = ZDReadFirstLine([configPath stringByAppendingPathComponent:@"main_class.txt"],
                                         @"zombie/gameStates/MainScreenState");
@@ -622,6 +663,12 @@ static NSString* ZDPrepareAndLaunchRuntime(void) {
                                                   [preview componentsJoinedByString:@", "]]];
     }
     [lines addObject:@"Hint: if you copied the whole folder, keep contents directly in game/ or let app auto-detect one nested folder."];
+    return [lines componentsJoinedByString:@"\n"];
+  }
+
+  int initResult = zomdroidInit();
+  if (initResult != 0) {
+    [lines addObject:[NSString stringWithFormat:@"[error] zomdroid_init failed: %d", initResult]];
     return [lines componentsJoinedByString:@"\n"];
   }
 
