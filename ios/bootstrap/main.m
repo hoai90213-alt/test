@@ -169,6 +169,32 @@ static NSString* ZDNormalizeMainClassPath(NSString* mainClassName) {
   return [mainClassName stringByReplacingOccurrencesOfString:@"." withString:@"/"];
 }
 
+static BOOL ZDHasSuffixCaseInsensitive(NSString* value, NSString* suffix) {
+  if (value == nil || suffix == nil || value.length < suffix.length) {
+    return NO;
+  }
+  return [value.lowercaseString hasSuffix:suffix.lowercaseString];
+}
+
+static NSString* ZDResolveCandidateRootFromRelativeClassPath(NSString* searchRoot,
+                                                             NSString* relativePath,
+                                                             NSString* classFileRelativePath) {
+  if (!ZDHasSuffixCaseInsensitive(relativePath, classFileRelativePath)) {
+    return nil;
+  }
+
+  NSString* candidateRoot = searchRoot;
+  if (relativePath.length > classFileRelativePath.length) {
+    NSUInteger prefixLength = relativePath.length - classFileRelativePath.length;
+    NSString* prefix = [relativePath substringToIndex:prefixLength];
+    prefix = [prefix stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"/"]];
+    if (prefix.length > 0) {
+      candidateRoot = [searchRoot stringByAppendingPathComponent:prefix];
+    }
+  }
+  return candidateRoot;
+}
+
 static NSString* ZDResolveGameRoot(NSString* baseGamePath,
                                    NSString* mainClassRelativePath,
                                    NSMutableArray<NSString*>* lines) {
@@ -181,24 +207,22 @@ static NSString* ZDResolveGameRoot(NSString* baseGamePath,
   NSDirectoryEnumerator<NSString*>* enumerator =
       [[NSFileManager defaultManager] enumeratorAtPath:baseGamePath];
   for (NSString* relativePath in enumerator) {
-    if (![relativePath hasSuffix:classFileRelativePath]) {
+    if ([relativePath.lastPathComponent caseInsensitiveCompare:@"MainScreenState.class"] != NSOrderedSame) {
       continue;
     }
 
-    NSString* candidateRoot = baseGamePath;
-    if (relativePath.length > classFileRelativePath.length) {
-      NSUInteger prefixLength = relativePath.length - classFileRelativePath.length;
-      NSString* prefix = [relativePath substringToIndex:prefixLength];
-      prefix = [prefix stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"/"]];
-      if (prefix.length > 0) {
-        candidateRoot = [baseGamePath stringByAppendingPathComponent:prefix];
-      }
-    }
-
-    NSString* candidateClassFile = [candidateRoot stringByAppendingPathComponent:classFileRelativePath];
-    if (ZDFileExists(candidateClassFile)) {
+    NSString* candidateRoot = ZDResolveCandidateRootFromRelativeClassPath(baseGamePath,
+                                                                          relativePath,
+                                                                          classFileRelativePath);
+    if (candidateRoot != nil) {
       [lines addObject:[NSString stringWithFormat:@"[ok] Auto-detected game root: %@", candidateRoot]];
       return candidateRoot;
+    }
+
+    NSString* looseRoot = [baseGamePath stringByAppendingPathComponent:[relativePath stringByDeletingLastPathComponent]];
+    if (looseRoot.length > 0) {
+      [lines addObject:[NSString stringWithFormat:@"[ok] Auto-detected loose class match: %@", looseRoot]];
+      return looseRoot;
     }
   }
 
@@ -217,28 +241,30 @@ static NSString* ZDFindGameRootContainingClass(NSString* searchRoot,
   NSDirectoryEnumerator<NSString*>* enumerator =
       [[NSFileManager defaultManager] enumeratorAtPath:searchRoot];
   for (NSString* relativePath in enumerator) {
-    if (![relativePath hasSuffix:classFileRelativePath]) {
+    if ([relativePath.lastPathComponent caseInsensitiveCompare:@"MainScreenState.class"] != NSOrderedSame) {
       continue;
     }
 
-    NSString* candidateRoot = searchRoot;
-    if (relativePath.length > classFileRelativePath.length) {
-      NSUInteger prefixLength = relativePath.length - classFileRelativePath.length;
-      NSString* prefix = [relativePath substringToIndex:prefixLength];
-      prefix = [prefix stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"/"]];
-      if (prefix.length > 0) {
-        candidateRoot = [searchRoot stringByAppendingPathComponent:prefix];
-      }
-    }
-
-    NSString* candidateClassFile = [candidateRoot stringByAppendingPathComponent:classFileRelativePath];
-    if (ZDFileExists(candidateClassFile)) {
+    NSString* candidateRoot = ZDResolveCandidateRootFromRelativeClassPath(searchRoot,
+                                                                          relativePath,
+                                                                          classFileRelativePath);
+    if (candidateRoot != nil) {
       if (label.length > 0) {
         [lines addObject:[NSString stringWithFormat:@"[ok] Fallback located game root in %@: %@", label, candidateRoot]];
       } else {
         [lines addObject:[NSString stringWithFormat:@"[ok] Fallback located game root: %@", candidateRoot]];
       }
       return candidateRoot;
+    }
+
+    NSString* looseRoot = [searchRoot stringByAppendingPathComponent:[relativePath stringByDeletingLastPathComponent]];
+    if (looseRoot.length > 0) {
+      if (label.length > 0) {
+        [lines addObject:[NSString stringWithFormat:@"[ok] Fallback loose class match in %@: %@", label, looseRoot]];
+      } else {
+        [lines addObject:[NSString stringWithFormat:@"[ok] Fallback loose class match: %@", looseRoot]];
+      }
+      return looseRoot;
     }
   }
 
@@ -424,6 +450,22 @@ static NSString* ZDPrepareAndLaunchRuntime(void) {
                                                 gamePath,
                                                 ZDBasePath(),
                                                 ZDDocumentsPath()]];
+    NSMutableArray<NSString*>* classMatches = [NSMutableArray array];
+    NSDirectoryEnumerator<NSString*>* allDocsEnumerator =
+        [[NSFileManager defaultManager] enumeratorAtPath:ZDDocumentsPath()];
+    for (NSString* relativePath in allDocsEnumerator) {
+      if ([relativePath.lastPathComponent caseInsensitiveCompare:@"MainScreenState.class"] == NSOrderedSame) {
+        [classMatches addObject:[ZDDocumentsPath() stringByAppendingPathComponent:relativePath]];
+        if (classMatches.count >= 5) {
+          break;
+        }
+      }
+    }
+    if (classMatches.count > 0) {
+      [lines addObject:[NSString stringWithFormat:@"[debug] found MainScreenState.class at: %@", [classMatches componentsJoinedByString:@" | "]]];
+    } else {
+      [lines addObject:@"[debug] no MainScreenState.class found under Documents"];
+    }
     NSError* listError = nil;
     NSArray<NSString*>* gameEntries = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:gamePath error:&listError];
     if (gameEntries != nil && listError == nil && gameEntries.count > 0) {
