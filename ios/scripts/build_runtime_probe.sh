@@ -72,6 +72,14 @@ emit_failure_annotation() {
     if [[ -z "$summary" ]]; then
       summary="$(tail -n 1 "$log_file" || true)"
     fi
+
+    if [[ "$summary" == *"Undefined symbols for architecture"* ]]; then
+      local undefined_detail
+      undefined_detail="$(awk '/Undefined symbols for architecture/{found=1; next} found && NF {print; exit}' "$log_file" || true)"
+      if [[ -n "$undefined_detail" ]]; then
+        summary="$summary $undefined_detail"
+      fi
+    fi
   fi
 
   summary="${summary//$'\r'/ }"
