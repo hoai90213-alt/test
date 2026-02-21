@@ -24,10 +24,10 @@ struct link_map {
 };
 
 struct dl_phdr_info {
-    ElfW(Addr) dlpi_addr;
+    uintptr_t dlpi_addr;
     const char* dlpi_name;
-    const ElfW(Phdr)* dlpi_phdr;
-    ElfW(Half) dlpi_phnum;
+    const void* dlpi_phdr;
+    uint16_t dlpi_phnum;
 };
 
 static inline int dlinfo(void* handle, int request, void* info)
