@@ -9,8 +9,12 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#if defined(__APPLE__) && !defined(MAP_ANONYMOUS) && defined(MAP_ANON)
+#if defined(__APPLE__) && !defined(MAP_ANONYMOUS)
+#if defined(MAP_ANON)
 #define MAP_ANONYMOUS MAP_ANON
+#else
+#define MAP_ANONYMOUS 0x1000
+#endif
 #endif
 
 #include "logger.h"
