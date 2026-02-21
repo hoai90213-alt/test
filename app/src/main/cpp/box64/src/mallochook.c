@@ -30,6 +30,14 @@ static inline malloc_zone_t* box64_apple_default_zone(void)
     return malloc_default_zone();
 }
 
+static inline size_t box64_apple_pagesize(void)
+{
+    long pagesize = sysconf(_SC_PAGESIZE);
+    if (pagesize <= 0)
+        pagesize = 4096;
+    return (size_t)pagesize;
+}
+
 EXPORT void* __libc_malloc(size_t size)
 {
     return malloc_zone_malloc(box64_apple_default_zone(), size);
@@ -60,12 +68,12 @@ EXPORT void* __libc_memalign(size_t align, size_t size)
 
 EXPORT void* __libc_valloc(size_t size)
 {
-    return __libc_memalign((size_t)getpagesize(), size);
+    return __libc_memalign(box64_apple_pagesize(), size);
 }
 
 EXPORT void* __libc_pvalloc(size_t size)
 {
-    size_t pagesize = (size_t)getpagesize();
+    size_t pagesize = box64_apple_pagesize();
     size_t rounded = (size + pagesize - 1) & ~(pagesize - 1);
     return __libc_memalign(pagesize, rounded);
 }
