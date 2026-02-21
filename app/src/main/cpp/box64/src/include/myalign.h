@@ -68,13 +68,16 @@ typedef struct  va_list {
 */
 #if defined(__APPLE__)
 #define CREATE_SYSV_VALIST(A) \
-  va_list sysv_varargs = (va_list)(A)
+  va_list sysv_varargs = (va_list)(A);
 
 #define CONVERT_VALIST(A) \
-  va_list sysv_varargs = (va_list)((A)->overflow_arg_area)
+  va_list sysv_varargs = (va_list)((A)->overflow_arg_area);
+
+#define CREATE_VALIST_FROM_VALIST(VA, SCRATCH) \
+  va_list sysv_varargs = (va_list)((VA)->overflow_arg_area);
 
 #define CREATE_VALIST_FROM_VAARG(STACK, SCRATCH, N) \
-  va_list sysv_varargs = (va_list)(STACK)
+  va_list sysv_varargs = (va_list)(STACK);
 #else
 #define CREATE_SYSV_VALIST(A) \
   va_list sysv_varargs; \
