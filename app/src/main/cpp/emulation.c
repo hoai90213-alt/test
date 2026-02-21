@@ -9,6 +9,10 @@
 #include <errno.h>
 #include <stdlib.h>
 
+#if defined(__APPLE__) && !defined(MAP_ANONYMOUS) && defined(MAP_ANON)
+#define MAP_ANONYMOUS MAP_ANON
+#endif
+
 #include "logger.h"
 #include "wrapped_jni.h"
 #include "emulation.h"
