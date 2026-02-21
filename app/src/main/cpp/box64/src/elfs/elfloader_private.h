@@ -5,7 +5,7 @@ typedef struct library_s library_t;
 typedef struct needed_libs_s needed_libs_t;
 typedef struct cleanup_s cleanup_t;
 
-#include <elf.h>
+#include "elf.h"
 #include "elfloader.h"
 #include "box32.h"
 

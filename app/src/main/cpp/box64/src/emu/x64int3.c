@@ -12,7 +12,7 @@
 #include <signal.h>
 #include <poll.h>
 #include <sys/wait.h>
-#include <elf.h>
+#include "elf.h"
 
 #include "debug.h"
 #include "box64stack.h"
@@ -29,7 +29,7 @@
 #include "signals.h"
 #include "tools/bridge_private.h"
 
-#include <elf.h>
+#include "elf.h"
 #include "elfloader.h"
 #include "elfload_dump.h"
 #include "elfs/elfloader_private.h"

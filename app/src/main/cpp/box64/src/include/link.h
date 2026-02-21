@@ -7,7 +7,7 @@
 #include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <elf.h>
+#include "elf.h"
 
 typedef long Lmid_t;
 

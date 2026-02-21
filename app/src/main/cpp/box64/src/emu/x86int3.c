@@ -26,7 +26,7 @@
 #include "signals.h"
 #include "tools/bridge_private.h"
 
-#include <elf.h>
+#include "elf.h"
 #include "elfloader.h"
 #include "elfload_dump.h"
 #include "elfs/elfloader_private.h"

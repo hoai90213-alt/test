@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dlfcn.h>
-#include <elf.h>
+#include "elf.h"
 #include <link.h>
 #include <alloca.h>
 

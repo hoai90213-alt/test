@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <elf.h>
+#include "elf.h"
 #include <errno.h>
 #include "gdbjit.h"
 #include "dynablock.h"
