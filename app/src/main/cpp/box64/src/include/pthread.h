@@ -45,6 +45,14 @@ static inline int pthread_getaffinity_np(pthread_t thread, size_t cpusetsize, vo
     errno = ENOSYS;
     return -1;
 }
+
+static inline int pthread_getattr_np(pthread_t thread, pthread_attr_t* attr)
+{
+    (void)thread;
+    (void)attr;
+    errno = ENOSYS;
+    return -1;
+}
 #endif
 #endif
 

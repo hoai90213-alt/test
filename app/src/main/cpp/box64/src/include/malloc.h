@@ -69,7 +69,7 @@ static inline void* memalign(size_t alignment, size_t size)
     return ptr;
 }
 
-static inline size_t box64_pagesize(void)
+static inline size_t box64_malloc_pagesize(void)
 {
     long pagesize = sysconf(_SC_PAGESIZE);
     if (pagesize <= 0) {
@@ -80,13 +80,13 @@ static inline size_t box64_pagesize(void)
 
 static inline void* valloc(size_t size)
 {
-    size_t pagesize = box64_pagesize();
+    size_t pagesize = box64_malloc_pagesize();
     return memalign(pagesize, size);
 }
 
 static inline void* pvalloc(size_t size)
 {
-    size_t pagesize = box64_pagesize();
+    size_t pagesize = box64_malloc_pagesize();
     size_t rounded = (size + pagesize - 1) & ~(pagesize - 1);
     return memalign(pagesize, rounded);
 }
