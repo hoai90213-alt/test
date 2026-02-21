@@ -32,17 +32,25 @@ void* my_dlsym(x64emu_t* emu, void *handle, void *symbol);
 
 static int sdl_Yes() { return 1;}
 static int sdl_No() { return 0;}
-int EXPORT my2_SDL_Has3DNow(void) __attribute__((alias("sdl_No")));
-int EXPORT my2_SDL_Has3DNowExt(void) __attribute__((alias("sdl_No")));
-int EXPORT my2_SDL_HasAltiVec(void) __attribute__((alias("sdl_No")));
-int EXPORT my2_SDL_HasMMX(void) __attribute__((alias("sdl_Yes")));
-int EXPORT my2_SDL_HasMMXExt(void) __attribute__((alias("sdl_Yes")));
-int EXPORT my2_SDL_HasNEON(void) __attribute__((alias("sdl_No")));   // No neon in x86_64 ;)
-int EXPORT my2_SDL_HasRDTSC(void) __attribute__((alias("sdl_Yes")));
-int EXPORT my2_SDL_HasSSE(void) __attribute__((alias("sdl_Yes")));
-int EXPORT my2_SDL_HasSSE2(void) __attribute__((alias("sdl_Yes")));
-int EXPORT my2_SDL_HasSSE3(void) __attribute__((alias("sdl_Yes")));
-int EXPORT my2_SDL_HasSSE41(void) __attribute__((alias("sdl_Yes")));
+#if defined(__APPLE__)
+#define SDL_ALIAS_NO(name) int EXPORT name(void) { return sdl_No(); }
+#define SDL_ALIAS_YES(name) int EXPORT name(void) { return sdl_Yes(); }
+#else
+#define SDL_ALIAS_NO(name) int EXPORT name(void) __attribute__((alias("sdl_No")));
+#define SDL_ALIAS_YES(name) int EXPORT name(void) __attribute__((alias("sdl_Yes")));
+#endif
+
+SDL_ALIAS_NO(my2_SDL_Has3DNow)
+SDL_ALIAS_NO(my2_SDL_Has3DNowExt)
+SDL_ALIAS_NO(my2_SDL_HasAltiVec)
+SDL_ALIAS_YES(my2_SDL_HasMMX)
+SDL_ALIAS_YES(my2_SDL_HasMMXExt)
+SDL_ALIAS_NO(my2_SDL_HasNEON)   // No neon in x86_64 ;)
+SDL_ALIAS_YES(my2_SDL_HasRDTSC)
+SDL_ALIAS_YES(my2_SDL_HasSSE)
+SDL_ALIAS_YES(my2_SDL_HasSSE2)
+SDL_ALIAS_YES(my2_SDL_HasSSE3)
+SDL_ALIAS_YES(my2_SDL_HasSSE41)
 int EXPORT my2_SDL_HasSSE42(void) {
     return BOX64ENV(sse42)?1:0;
 }
@@ -52,7 +60,10 @@ int EXPORT my2_SDL_HasAVX(void) {
 int EXPORT my2_SDL_HasAVX2(void) {
     return BOX64ENV(avx2)?1:0;
 }
-int EXPORT my2_SDL_HasAVX512F(void) __attribute__((alias("sdl_No")));
+SDL_ALIAS_NO(my2_SDL_HasAVX512F)
+
+#undef SDL_ALIAS_NO
+#undef SDL_ALIAS_YES
 
 typedef struct {
   int32_t freq;

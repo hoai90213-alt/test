@@ -26,7 +26,7 @@ struct link_map {
 struct dl_phdr_info {
     uintptr_t dlpi_addr;
     const char* dlpi_name;
-    const void* dlpi_phdr;
+    const Elf64_Phdr* dlpi_phdr;
     uint16_t dlpi_phnum;
 };
 
