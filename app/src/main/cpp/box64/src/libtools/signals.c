@@ -41,9 +41,9 @@
 #endif
 
 #if defined(__APPLE__)
-#define UCTX_REGS(P) ((P)->uc_mcontext->regs)
-#define UCTX_PC(P) ((P)->uc_mcontext->pc)
-#define UCTX_RESERVED(P) ((P)->uc_mcontext->__reserved)
+#define UCTX_REGS(P) ((P)->uc_mcontext->__ss.__x)
+#define UCTX_PC(P) ((P)->uc_mcontext->__ss.__pc)
+#define UCTX_RESERVED(P) (NULL)
 #else
 #define UCTX_REGS(P) ((P)->uc_mcontext.regs)
 #define UCTX_PC(P) ((P)->uc_mcontext.pc)

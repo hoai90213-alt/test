@@ -12,6 +12,12 @@
 #ifndef RTLD_DEFAULT
 #define RTLD_DEFAULT ((void*)0)
 #endif
+#ifndef RTLD_DL_SYMENT
+#define RTLD_DL_SYMENT 1
+#endif
+#ifndef RTLD_DL_LINKMAP
+#define RTLD_DL_LINKMAP 2
+#endif
 
 #ifndef __BOX64_DL_INFO_DEFINED
 #define __BOX64_DL_INFO_DEFINED 1
