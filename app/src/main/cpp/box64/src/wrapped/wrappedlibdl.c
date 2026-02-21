@@ -5,6 +5,7 @@
 #include <dlfcn.h>
 #include <elf.h>
 #include <link.h>
+#include <alloca.h>
 
 #include "wrappedlibs.h"
 
