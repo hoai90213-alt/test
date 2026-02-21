@@ -286,7 +286,7 @@ if(CI)
     add_definitions(-Wno-pointer-type-mismatch)
 endif()
 if(APPLE)
-    add_definitions(-Du_short=unsigned)
+    add_definitions(-D_DARWIN_C_SOURCE)
 endif()
 
 if(HAVE_TRACE)

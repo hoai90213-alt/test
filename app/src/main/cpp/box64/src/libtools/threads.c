@@ -706,7 +706,10 @@ int EXPORT my_pthread_once(x64emu_t* emu, int* once, void* cb)
 	R_RBP = Pop64(emu);     // pop rbp
 	return 0;
 }
-EXPORT int my___pthread_once(x64emu_t* emu, void* once, void* cb) __attribute__((alias("my_pthread_once")));
+EXPORT int my___pthread_once(x64emu_t* emu, void* once, void* cb)
+{
+	return my_pthread_once(emu, once, cb);
+}
 
 EXPORT int my_pthread_key_create(x64emu_t* emu, pthread_key_t* key, void* dtor)
 {
@@ -714,7 +717,10 @@ EXPORT int my_pthread_key_create(x64emu_t* emu, pthread_key_t* key, void* dtor)
 	int ret = pthread_key_create(key, findkey_dtorFct(dtor));
 	return ret;
 }
-EXPORT int my___pthread_key_create(x64emu_t* emu, pthread_key_t* key, void* dtor) __attribute__((alias("my_pthread_key_create")));
+EXPORT int my___pthread_key_create(x64emu_t* emu, pthread_key_t* key, void* dtor)
+{
+	return my_pthread_key_create(emu, key, dtor);
+}
 
 EXPORT int my_pthread_key_delete(x64emu_t* emu, pthread_key_t key)
 {
@@ -868,7 +874,10 @@ EXPORT int my_pthread_mutexattr_destroy(x64emu_t* emu, my_mutexattr_t *attr)
 	attr->x86 = mattr.x86;
 	return ret;
 }
-EXPORT int my___pthread_mutexattr_destroy(x64emu_t* emu, my_mutexattr_t *attr) __attribute__((alias("my_pthread_mutexattr_destroy")));
+EXPORT int my___pthread_mutexattr_destroy(x64emu_t* emu, my_mutexattr_t *attr)
+{
+	return my_pthread_mutexattr_destroy(emu, attr);
+}
 EXPORT int my_pthread_mutexattr_getkind_np(x64emu_t* emu, my_mutexattr_t *attr, void* p)
 {
 	my_mutexattr_t mattr = {0};
@@ -914,7 +923,10 @@ EXPORT int my_pthread_mutexattr_init(x64emu_t* emu, my_mutexattr_t *attr)
 	attr->x86 = mattr.x86;
 	return ret;
 }
-EXPORT int my___pthread_mutexattr_init(x64emu_t* emu, my_mutexattr_t *attr) __attribute__((alias("my_pthread_mutexattr_init")));
+EXPORT int my___pthread_mutexattr_init(x64emu_t* emu, my_mutexattr_t *attr)
+{
+	return my_pthread_mutexattr_init(emu, attr);
+}
 EXPORT int my_pthread_mutexattr_setkind_np(x64emu_t* emu, my_mutexattr_t *attr, int k)
 {
 	my_mutexattr_t mattr = {0};
@@ -950,7 +962,10 @@ EXPORT int my_pthread_mutexattr_settype(x64emu_t* emu, my_mutexattr_t *attr, int
 	attr->x86 = mattr.x86;
 	return ret;
 }
-EXPORT int my___pthread_mutexattr_settype(x64emu_t* emu, my_mutexattr_t *attr, int t) __attribute__((alias("my_pthread_mutexattr_settype")));
+EXPORT int my___pthread_mutexattr_settype(x64emu_t* emu, my_mutexattr_t *attr, int t)
+{
+	return my_pthread_mutexattr_settype(emu, attr, t);
+}
 #ifndef ANDROID
 EXPORT int my_pthread_mutexattr_setrobust(x64emu_t* emu, my_mutexattr_t *attr, int t)
 {
@@ -988,7 +1003,10 @@ EXPORT int my_pthread_mutex_init(pthread_mutex_t *m, my_mutexattr_t *att)
 	#endif
 	return ret;
 }
-EXPORT int my___pthread_mutex_init(pthread_mutex_t *m, my_mutexattr_t *att) __attribute__((alias("my_pthread_mutex_init")));
+EXPORT int my___pthread_mutex_init(pthread_mutex_t *m, my_mutexattr_t *att)
+{
+	return my_pthread_mutex_init(m, att);
+}
 
 typedef union my_condattr_s {
 	int					x86;
