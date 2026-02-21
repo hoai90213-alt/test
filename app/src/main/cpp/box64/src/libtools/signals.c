@@ -2250,8 +2250,14 @@ EXPORT sighandler_t my_signal(x64emu_t* emu, int signum, sighandler_t handler)
     } else
         return signal(signum, handler);
 }
-EXPORT sighandler_t my___sysv_signal(x64emu_t* emu, int signum, sighandler_t handler) __attribute__((alias("my_signal")));
-EXPORT sighandler_t my_sysv_signal(x64emu_t* emu, int signum, sighandler_t handler) __attribute__((alias("my_signal")));    // not completely exact
+EXPORT sighandler_t my___sysv_signal(x64emu_t* emu, int signum, sighandler_t handler)
+{
+    return my_signal(emu, signum, handler);
+}
+EXPORT sighandler_t my_sysv_signal(x64emu_t* emu, int signum, sighandler_t handler)
+{
+    return my_signal(emu, signum, handler);
+}    // not completely exact
 
 int EXPORT my_sigaction(x64emu_t* emu, int signum, const x64_sigaction_t *act, x64_sigaction_t *oldact)
 {
@@ -2308,7 +2314,9 @@ int EXPORT my_sigaction(x64emu_t* emu, int signum, const x64_sigaction_t *act, x
     return ret;
 }
 int EXPORT my___sigaction(x64emu_t* emu, int signum, const x64_sigaction_t *act, x64_sigaction_t *oldact)
-__attribute__((alias("my_sigaction")));
+{
+    return my_sigaction(emu, signum, act, oldact);
+}
 
 int EXPORT my_syscall_rt_sigaction(x64emu_t* emu, int signum, const x64_sigaction_restorer_t *act, x64_sigaction_restorer_t *oldact, int sigsetsize)
 {
