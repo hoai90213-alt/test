@@ -426,12 +426,20 @@ static void box64_load_gnu_libc() {
 }
 
 static void* get_self_handle() {
+#if defined(__APPLE__)
+    void* handle = dlopen(NULL, RTLD_NOW);
+    if (!handle) {
+        LOGE("dlopen(NULL) failed.");
+    }
+    return handle;
+#else
     Dl_info info;
     if (!dladdr((void*)get_self_handle, &info)) {
         LOGE("dladdr failed.");
         return NULL;
     }
     return dlopen(info.dli_fname, RTLD_NOW | RTLD_NOLOAD);
+#endif
 }
 
 void init_box64() {
