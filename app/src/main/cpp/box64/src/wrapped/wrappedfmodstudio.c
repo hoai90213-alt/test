@@ -224,7 +224,7 @@ static int init_fmod_symbols() {
     return 1;
 }
 
-FMOD_RESULT my__ZN4FMOD6Studio6System6createEPPS1_j(void** this, uint some_arg) {
+FMOD_RESULT my__ZN4FMOD6Studio6System6createEPPS1_j(void** this, unsigned int some_arg) {
     static int once = 1;
     static int init = 0;
 
