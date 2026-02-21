@@ -1568,6 +1568,7 @@ void my_box64signalhandler(int32_t sig, siginfo_t* info, void * ucntx)
 #ifdef __aarch64__
     void * pc = (void*)UCTX_PC(p);
     struct fpsimd_context *fpsimd = NULL;
+#if !defined(__APPLE__)
     // find fpsimd struct
     {
         struct _aarch64_ctx * ff = (struct _aarch64_ctx*)UCTX_RESERVED(p);
@@ -1578,6 +1579,7 @@ void my_box64signalhandler(int32_t sig, siginfo_t* info, void * ucntx)
                 ff = (struct _aarch64_ctx*)((uintptr_t)ff + ff->size);
         }
     }
+#endif
 #elif defined __x86_64__
     void * pc = (void*)p->uc_mcontext.gregs[X64_RIP];
     void* fpsimd = NULL;
