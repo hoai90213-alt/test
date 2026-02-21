@@ -3652,6 +3652,10 @@ EXPORT uint32_t userdata[1024];
 
 EXPORT long my_ptrace(x64emu_t* emu, int request, pid_t pid, void* addr, uint32_t* data)
 {
+#if defined(__APPLE__)
+    (void)emu;
+    return ptrace(request, pid, addr, data);
+#else
     if(request == PTRACE_POKEUSER) {
         if(ptrace(PTRACE_PEEKDATA, pid, &userdata_sign, NULL)==userdata_sign  && (uintptr_t)addr < sizeof(userdata)) {
             long ret = ptrace(PTRACE_POKEDATA, pid, addr+(uintptr_t)userdata, data);
@@ -3681,6 +3685,7 @@ EXPORT long my_ptrace(x64emu_t* emu, int request, pid_t pid, void* addr, uint32_
     }
     long ret = ptrace(request, pid, addr, data);
     return ret;
+#endif
 }
 
 // Backtrace stuff
