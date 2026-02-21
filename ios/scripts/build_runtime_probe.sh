@@ -61,9 +61,10 @@ emit_failure_annotation() {
   local summary=""
 
   if [[ -f "$log_file" ]]; then
-    summary="$(grep -E 'undefined symbol|undefined reference|cannot find|no such file|ld:|CMake Error|error:|fatal error:' "$log_file" \
+    summary="$(grep -E 'Undefined symbols|undefined symbol|undefined reference|cannot find|no such file|ld:|CMake Error|error:|fatal error:' "$log_file" \
       | grep -v 'too many errors emitted' \
       | grep -v 'linker command failed' \
+      | grep -v 'ld: symbol(s) not found for architecture' \
       | head -n 1 || true)"
     if [[ -z "$summary" ]]; then
       summary="$(grep -E 'CMake Error|error:|fatal error:' "$log_file" | tail -n 1 || true)"
