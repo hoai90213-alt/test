@@ -1356,12 +1356,10 @@ EXPORT int my32_statfs64(const char* path, void* buf)
     UnalignStatFS64_32(&st, buf);
     return r;
 }
-#if 0
+typedef int (*box64_compar_d_fn32_t)(const void*, const void*, void*);
 
-#ifdef ANDROID
-typedef int (*__compar_d_fn_t)(const void*, const void*, void*);
-
-static size_t qsort_r_partition(void* base, size_t size, __compar_d_fn_t compar, void* arg, size_t lo, size_t hi)
+#if defined(ANDROID) || defined(__APPLE__)
+static size_t qsort_r32_partition(void* base, size_t size, box64_compar_d_fn32_t compar, void* arg, size_t lo, size_t hi)
 {
     void* tmp = malloc(size);
     void* pivot = ((char*)base) + lo * size;
@@ -1387,21 +1385,25 @@ static size_t qsort_r_partition(void* base, size_t size, __compar_d_fn_t compar,
     return i;
 }
 
-static void qsort_r_helper(void* base, size_t size, __compar_d_fn_t compar, void* arg, ssize_t lo, ssize_t hi)
+static void qsort_r32_helper(void* base, size_t size, box64_compar_d_fn32_t compar, void* arg, ssize_t lo, ssize_t hi)
 {
     if (lo < hi)
     {
-        size_t p = qsort_r_partition(base, size, compar, arg, lo, hi);
-        qsort_r_helper(base, size, compar, arg, lo, p - 1);
-        qsort_r_helper(base, size, compar, arg, p + 1, hi);
+        size_t p = qsort_r32_partition(base, size, compar, arg, lo, hi);
+        qsort_r32_helper(base, size, compar, arg, lo, p - 1);
+        qsort_r32_helper(base, size, compar, arg, p + 1, hi);
     }
 }
 
-static void qsort_r(void* base, size_t nmemb, size_t size, __compar_d_fn_t compar, void* arg)
+static void box64_qsort_r32(void* base, size_t nmemb, size_t size, box64_compar_d_fn32_t compar, void* arg)
 {
-    return qsort_r_helper(base, size, compar, arg, 0, nmemb - 1);
+    return qsort_r32_helper(base, size, compar, arg, 0, nmemb - 1);
 }
-#endif
+#else
+static void box64_qsort_r32(void* base, size_t nmemb, size_t size, box64_compar_d_fn32_t compar, void* arg)
+{
+    qsort_r(base, nmemb, size, compar, arg);
+}
 #endif
 typedef struct compare_r_s {
     x64emu_t* emu;
@@ -1420,13 +1422,13 @@ EXPORT void my32_qsort(x64emu_t* emu, void* base, size_t nmemb, size_t size, voi
 {
     compare_r_t args;
     args.emu = emu; args.f = (uintptr_t)fnc; args.r = 0; args.data = NULL;
-    qsort_r(base, nmemb, size, (__compar_d_fn_t)my32_compare_r_cb, &args);
+    box64_qsort_r32(base, nmemb, size, (box64_compar_d_fn32_t)my32_compare_r_cb, &args);
 }
 EXPORT void my32_qsort_r(x64emu_t* emu, void* base, size_t nmemb, size_t size, void* fnc, void* data)
 {
     compare_r_t args;
     args.emu = emu; args.f = (uintptr_t)fnc; args.r = 1; args.data = data;
-    qsort_r(base, nmemb, size, (__compar_d_fn_t)my32_compare_r_cb, &args);
+    box64_qsort_r32(base, nmemb, size, (box64_compar_d_fn32_t)my32_compare_r_cb, &args);
 }
 #endif
 

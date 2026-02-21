@@ -1549,10 +1549,10 @@ EXPORT int my_statfs64(const char* path, void* buf)
 }
 #endif
 
-#ifdef ANDROID
-typedef int (*__compar_d_fn_t)(const void*, const void*, void*);
+typedef int (*box64_compar_d_fn_t)(const void*, const void*, void*);
 
-static size_t qsort_r_partition(void* base, size_t size, __compar_d_fn_t compar, void* arg, size_t lo, size_t hi)
+#if defined(ANDROID) || defined(__APPLE__)
+static size_t qsort_r_partition(void* base, size_t size, box64_compar_d_fn_t compar, void* arg, size_t lo, size_t hi)
 {
     void* tmp = alloca(size);
     void* pivot = ((char*)base) + lo * size;
@@ -1577,7 +1577,7 @@ static size_t qsort_r_partition(void* base, size_t size, __compar_d_fn_t compar,
     return i;
 }
 
-static void qsort_r_helper(void* base, size_t size, __compar_d_fn_t compar, void* arg, ssize_t lo, ssize_t hi)
+static void qsort_r_helper(void* base, size_t size, box64_compar_d_fn_t compar, void* arg, ssize_t lo, ssize_t hi)
 {
     if (lo < hi)
     {
@@ -1587,9 +1587,14 @@ static void qsort_r_helper(void* base, size_t size, __compar_d_fn_t compar, void
     }
 }
 
-static void qsort_r(void* base, size_t nmemb, size_t size, __compar_d_fn_t compar, void* arg)
+static void box64_qsort_r(void* base, size_t nmemb, size_t size, box64_compar_d_fn_t compar, void* arg)
 {
     return qsort_r_helper(base, size, compar, arg, 0, nmemb - 1);
+}
+#else
+static void box64_qsort_r(void* base, size_t nmemb, size_t size, box64_compar_d_fn_t compar, void* arg)
+{
+    qsort_r(base, nmemb, size, compar, arg);
 }
 #endif
 
@@ -1608,13 +1613,13 @@ EXPORT void my_qsort(x64emu_t* emu, void* base, size_t nmemb, size_t size, void*
 {
     compare_r_t args;
     args.emu = emu; args.f = (uintptr_t)fnc; args.r = 0; args.data = NULL;
-    qsort_r(base, nmemb, size, (__compar_d_fn_t)my_compare_r_cb, &args);
+    box64_qsort_r(base, nmemb, size, (box64_compar_d_fn_t)my_compare_r_cb, &args);
 }
 EXPORT void my_qsort_r(x64emu_t* emu, void* base, size_t nmemb, size_t size, void* fnc, void* data)
 {
     compare_r_t args;
     args.emu = emu; args.f = (uintptr_t)fnc; args.r = 1; args.data = data;
-    qsort_r(base, nmemb, size, (__compar_d_fn_t)my_compare_r_cb, &args);
+    box64_qsort_r(base, nmemb, size, (box64_compar_d_fn_t)my_compare_r_cb, &args);
 }
 EXPORT void* my_bsearch(x64emu_t* emu, void* key, void* base, size_t nmemb, size_t size, void* fnc)
 {

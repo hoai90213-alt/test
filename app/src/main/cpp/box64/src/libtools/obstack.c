@@ -179,7 +179,10 @@ EXPORT void my_obstack_free(struct i386_obstack * obstack, void* block)
     obstack_free(&native, block);
     to_i386_obstack(obstack, &native);  // usefull??
 }
-EXPORT void my__obstack_free(struct i386_obstack * obstack, void* block) __attribute__((alias("my_obstack_free")));
+EXPORT void my__obstack_free(struct i386_obstack * obstack, void* block)
+{
+    my_obstack_free(obstack, block);
+}
 
 EXPORT void my__obstack_newchunk(x64emu_t* emu, struct i386_obstack* obstack, int s)
 {
@@ -215,7 +218,10 @@ EXPORT void my_obstack_free(struct obstack * obstack, void* block)
 {
     obstack_free(obstack, block);
 }
-EXPORT void my__obstack_free(struct obstack * obstack, void* block) __attribute__((alias("my_obstack_free")));
+EXPORT void my__obstack_free(struct obstack * obstack, void* block)
+{
+    my_obstack_free(obstack, block);
+}
 
 EXPORT void my__obstack_newchunk(x64emu_t* emu, struct obstack* obstack, int s)
 {
