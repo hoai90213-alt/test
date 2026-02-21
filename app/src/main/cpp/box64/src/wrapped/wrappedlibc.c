@@ -3607,7 +3607,7 @@ EXPORT void my_mcount(void* frompc, void* selfpc)
 }
 #endif
 
-#ifndef ANDROID
+#if !defined(ANDROID) && defined(_SEM_SEMUN_UNDEFINED)
 union semun {
   int              val;    /* Value for SETVAL */
   struct semid_ds *buf;    /* Buffer for IPC_STAT, IPC_SET */
