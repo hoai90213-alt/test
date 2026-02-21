@@ -9,6 +9,9 @@
 #ifndef RTLD_NEXT
 #define RTLD_NEXT ((void*)-1L)
 #endif
+#ifndef RTLD_DEFAULT
+#define RTLD_DEFAULT ((void*)0)
+#endif
 
 #ifndef __BOX64_DL_INFO_DEFINED
 #define __BOX64_DL_INFO_DEFINED 1

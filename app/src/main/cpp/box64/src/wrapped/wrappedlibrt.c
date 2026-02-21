@@ -4,10 +4,14 @@
 #include <string.h>
 #include <dlfcn.h>
 #include <signal.h>
+#include <errno.h>
 #ifndef ANDROID
 #include <aio.h>
-#else
-#include <errno.h>
+#endif
+
+#if defined(__APPLE__) && !defined(_TIMER_T)
+typedef void* timer_t;
+#define _TIMER_T 1
 #endif
 
 #include "wrappedlibs.h"
@@ -72,6 +76,15 @@ static void* findsigev_notifyFct(void* fct)
 EXPORT int my_timer_create(x64emu_t* emu, uint32_t clockid, void* sevp, timer_t* timerid)
 {
     (void)emu;
+#if defined(__APPLE__)
+    (void)clockid;
+    (void)sevp;
+    if (timerid) {
+        *timerid = (timer_t)0;
+    }
+    errno = ENOSYS;
+    return -1;
+#else
     struct sigevent sevent;
     memcpy(&sevent, sevp, sizeof(sevent));
 
@@ -80,6 +93,7 @@ EXPORT int my_timer_create(x64emu_t* emu, uint32_t clockid, void* sevp, timer_t*
     }
 
     return timer_create(clockid, &sevent, timerid);
+#endif
 }
 #ifndef ANDROID
 EXPORT int my_aio_cancel(x64emu_t emu, int fd, struct aiocb* aiocbp)
