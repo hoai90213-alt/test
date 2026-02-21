@@ -8,6 +8,10 @@
 #include <dlfcn.h>
 #include <malloc.h>
 
+#ifdef malloc_usable_size
+#undef malloc_usable_size
+#endif
+
 #include "box64context.h"
 #include "debug.h"
 #include "callback.h"
