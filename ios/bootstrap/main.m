@@ -162,6 +162,44 @@ static NSArray<NSString*>* ZDListJarFiles(NSString* directoryPath) {
   return jars;
 }
 
+static NSString* ZDNormalizeMainClassPath(NSString* mainClassName) {
+  if (mainClassName == nil || mainClassName.length == 0) {
+    return @"zombie/gameStates/MainScreenState";
+  }
+  return [mainClassName stringByReplacingOccurrencesOfString:@"." withString:@"/"];
+}
+
+static NSString* ZDResolveGameRoot(NSString* baseGamePath,
+                                   NSString* mainClassRelativePath,
+                                   NSMutableArray<NSString*>* lines) {
+  NSString* classFileRelativePath = [mainClassRelativePath stringByAppendingString:@".class"];
+  NSString* directClassFile = [baseGamePath stringByAppendingPathComponent:classFileRelativePath];
+  if (ZDFileExists(directClassFile)) {
+    return baseGamePath;
+  }
+
+  NSError* error = nil;
+  NSArray<NSString*>* entries = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:baseGamePath error:&error];
+  if (entries == nil || error != nil) {
+    return nil;
+  }
+
+  for (NSString* entry in entries) {
+    NSString* candidate = [baseGamePath stringByAppendingPathComponent:entry];
+    BOOL isDir = NO;
+    if (![[NSFileManager defaultManager] fileExistsAtPath:candidate isDirectory:&isDir] || !isDir) {
+      continue;
+    }
+    NSString* nestedClassFile = [candidate stringByAppendingPathComponent:classFileRelativePath];
+    if (ZDFileExists(nestedClassFile)) {
+      [lines addObject:[NSString stringWithFormat:@"[ok] Auto-detected nested game root: %@", candidate]];
+      return candidate;
+    }
+  }
+
+  return nil;
+}
+
 static ZDCStringArray ZDMakeCStringArray(NSArray<NSString*>* strings) {
   ZDCStringArray result;
   result.argc = (int)strings.count;
@@ -322,16 +360,21 @@ static NSString* ZDPrepareAndLaunchRuntime(void) {
 
   NSString* mainClass = ZDReadFirstLine([configPath stringByAppendingPathComponent:@"main_class.txt"],
                                         @"zombie/gameStates/MainScreenState");
+  NSString* mainClassRelativePath = ZDNormalizeMainClassPath(mainClass);
+  NSString* resolvedGamePath = ZDResolveGameRoot(gamePath, mainClassRelativePath, lines);
 
-  NSString* mainClassFile = [gamePath stringByAppendingPathComponent:@"zombie/gameStates/MainScreenState.class"];
+  NSString* mainClassFile = [gamePath stringByAppendingPathComponent:[mainClassRelativePath stringByAppendingString:@".class"]];
+  if (resolvedGamePath != nil) {
+    mainClassFile = [resolvedGamePath stringByAppendingPathComponent:[mainClassRelativePath stringByAppendingString:@".class"]];
+  }
   if (!ZDFileExists(mainClassFile)) {
     [lines addObject:[NSString stringWithFormat:@"[error] Missing main class file: %@", mainClassFile]];
-    [lines addObject:@"Copy Linux game files into Documents/zomdroid/game first."];
+    [lines addObject:@"Hint: if you copied the whole folder, keep contents directly in game/ or let app auto-detect one nested folder."];
     return [lines componentsJoinedByString:@"\n"];
   }
 
   NSMutableArray<NSString*>* classPathParts = [NSMutableArray arrayWithObject:@"."];
-  [classPathParts addObjectsFromArray:ZDListJarFiles(gamePath)];
+  [classPathParts addObjectsFromArray:ZDListJarFiles(resolvedGamePath ?: gamePath)];
   [classPathParts addObjectsFromArray:ZDListJarFiles([depsPath stringByAppendingPathComponent:@"jars"])];
   NSString* classPath = [classPathParts componentsJoinedByString:@":"];
 
@@ -366,7 +409,7 @@ static NSString* ZDPrepareAndLaunchRuntime(void) {
   }
 
   context->start_game = zomdroidStartGame;
-  context->game_dir = strdup(gamePath.UTF8String);
+  context->game_dir = strdup((resolvedGamePath ?: gamePath).UTF8String);
   context->library_dir = strdup(librarySearchPath.UTF8String);
   context->main_class = strdup(mainClass.UTF8String);
   context->jvm_argc = jvmCStringArray.argc;
@@ -380,7 +423,7 @@ static NSString* ZDPrepareAndLaunchRuntime(void) {
     return [lines componentsJoinedByString:@"\n"];
   }
 
-  [lines addObject:[NSString stringWithFormat:@"[ok] gameDir=%@", gamePath]];
+  [lines addObject:[NSString stringWithFormat:@"[ok] gameDir=%@", resolvedGamePath ?: gamePath]];
   [lines addObject:[NSString stringWithFormat:@"[ok] depsDir=%@", depsPath]];
   [lines addObject:[NSString stringWithFormat:@"[ok] mainClass=%@", mainClass]];
   [lines addObject:[NSString stringWithFormat:@"[ok] jvmArgs=%d appArgs=%d", context->jvm_argc, context->app_argc]];
