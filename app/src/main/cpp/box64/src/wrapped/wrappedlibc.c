@@ -546,7 +546,10 @@ pid_t EXPORT my_fork(x64emu_t* emu)
     return v;
     #endif
 }
-pid_t EXPORT my___fork(x64emu_t* emu) __attribute__((alias("my_fork")));
+pid_t EXPORT my___fork(x64emu_t* emu)
+{
+    return my_fork(emu);
+}
 pid_t EXPORT my_vfork(x64emu_t* emu)
 {
     #if 1
@@ -665,9 +668,18 @@ EXPORT void my__ITM_memcpyRtWn(void * a, const void * b, size_t c) { (void)a; (v
 EXPORT void my__ITM_memcpyRnWt(void * a, const void * b, size_t c) { (void)a; (void)b; (void)c; printf("warning _ITM_memcpyRnWt called\n"); }
 
 EXPORT void my_longjmp(x64emu_t* emu, /*struct __jmp_buf_tag __env[1]*/void *p, int32_t __val);
-EXPORT void my__longjmp(x64emu_t* emu, /*struct __jmp_buf_tag __env[1]*/void *p, int32_t __val) __attribute__((alias("my_longjmp")));
-EXPORT void my_siglongjmp(x64emu_t* emu, /*struct __jmp_buf_tag __env[1]*/void *p, int32_t __val) __attribute__((alias("my_longjmp")));
-EXPORT void my___longjmp_chk(x64emu_t* emu, /*struct __jmp_buf_tag __env[1]*/void *p, int32_t __val) __attribute__((alias("my_longjmp")));
+EXPORT void my__longjmp(x64emu_t* emu, /*struct __jmp_buf_tag __env[1]*/void *p, int32_t __val)
+{
+    my_longjmp(emu, p, __val);
+}
+EXPORT void my_siglongjmp(x64emu_t* emu, /*struct __jmp_buf_tag __env[1]*/void *p, int32_t __val)
+{
+    my_longjmp(emu, p, __val);
+}
+EXPORT void my___longjmp_chk(x64emu_t* emu, /*struct __jmp_buf_tag __env[1]*/void *p, int32_t __val)
+{
+    my_longjmp(emu, p, __val);
+}
 
 //EXPORT int32_t my_setjmp(x64emu_t* emu, /*struct __jmp_buf_tag __env[1]*/void *p);
 //EXPORT int32_t my__setjmp(x64emu_t* emu, /*struct __jmp_buf_tag __env[1]*/void *p) __attribute__((alias("my_setjmp")));
@@ -715,7 +727,10 @@ EXPORT int my_vprintf(x64emu_t *emu, void* fmt, x64_va_list_t b) {
     #endif
     return vprintf(fmt, VARARGS);
 }
-EXPORT int my___vprintf_chk(x64emu_t *emu, void* fmt, x64_va_list_t b) __attribute__((alias("my_vprintf")));
+EXPORT int my___vprintf_chk(x64emu_t *emu, void* fmt, x64_va_list_t b)
+{
+    return my_vprintf(emu, fmt, b);
+}
 
 EXPORT int my_vfprintf(x64emu_t *emu, void* F, void* fmt, x64_va_list_t b) {
     #ifdef CONVERT_VALIST
@@ -726,8 +741,14 @@ EXPORT int my_vfprintf(x64emu_t *emu, void* F, void* fmt, x64_va_list_t b) {
     #endif
     return vfprintf(F, fmt, VARARGS);
 }
-EXPORT int my___vfprintf_chk(x64emu_t *emu, void* F, void* fmt, x64_va_list_t b) __attribute__((alias("my_vfprintf")));
-EXPORT int my__IO_vfprintf(x64emu_t *emu, void* F, void* fmt, x64_va_list_t b) __attribute__((alias("my_vfprintf")));
+EXPORT int my___vfprintf_chk(x64emu_t *emu, void* F, void* fmt, x64_va_list_t b)
+{
+    return my_vfprintf(emu, F, fmt, b);
+}
+EXPORT int my__IO_vfprintf(x64emu_t *emu, void* F, void* fmt, x64_va_list_t b)
+{
+    return my_vfprintf(emu, F, fmt, b);
+}
 
 EXPORT int my_fprintf(x64emu_t *emu, void* F, void* fmt, void* b)  {
     myStackAlign(emu, (const char*)fmt, b, emu->scratch, R_EAX, 2);
@@ -836,7 +857,10 @@ EXPORT int my_snprintf(x64emu_t* emu, void* buff, size_t s, void * fmt, uint64_t
     int r = vsnprintf(buff, s, fmt, VARARGS);
     return r;
 }
-EXPORT int my___snprintf(x64emu_t* emu, void* buff, size_t s, void * fmt, uint64_t * b) __attribute__((alias("my_snprintf")));
+EXPORT int my___snprintf(x64emu_t* emu, void* buff, size_t s, void * fmt, uint64_t * b)
+{
+    return my_snprintf(emu, buff, s, fmt, b);
+}
 EXPORT int my___snprintf_chk(x64emu_t* emu, void* buff, size_t s, int flags, size_t maxlen, void * fmt, uint64_t * b)
 {
     (void)flags; (void)maxlen;
@@ -875,7 +899,10 @@ EXPORT int my_asprintf(x64emu_t* emu, void** buff, void * fmt, uint64_t * b) {
     PREPARE_VALIST;
     return vasprintf((char**)buff, (char*)fmt, VARARGS);
 }
-EXPORT int my___asprintf(x64emu_t* emu, void** buff, void * fmt, uint64_t * b) __attribute__((alias("my_asprintf")));
+EXPORT int my___asprintf(x64emu_t* emu, void** buff, void * fmt, uint64_t * b)
+{
+    return my_asprintf(emu, buff, fmt, b);
+}
 
 EXPORT int my_vasprintf(x64emu_t* emu, char** buff, void* fmt, x64_va_list_t b) {
     (void)emu;
@@ -898,7 +925,10 @@ EXPORT int my_vsprintf(x64emu_t* emu, void* buff,  void * fmt, x64_va_list_t b) 
     #endif
     return vsprintf(buff, fmt, VARARGS);
 }
-EXPORT int my___vsprintf_chk(x64emu_t* emu, void* buff, void * fmt, x64_va_list_t b) __attribute__((alias("my_vsprintf")));
+EXPORT int my___vsprintf_chk(x64emu_t* emu, void* buff, void * fmt, x64_va_list_t b)
+{
+    return my_vsprintf(emu, buff, fmt, b);
+}
 
 EXPORT int my_scanf(x64emu_t* emu, void* fmt, uint64_t* b)
 {
@@ -932,7 +962,10 @@ EXPORT int my_vsscanf(x64emu_t* emu, void* stream, void* fmt, x64_va_list_t b)
     return vsscanf(stream, fmt, VARARGS);
 }
 
-EXPORT int my___vsscanf(x64emu_t* emu, void* stream, void* fmt, void* b) __attribute__((alias("my_vsscanf")));
+EXPORT int my___vsscanf(x64emu_t* emu, void* stream, void* fmt, void* b)
+{
+    return my_vsscanf(emu, stream, fmt, b);
+}
 
 EXPORT int my_vfwscanf(x64emu_t* emu, void* F, void* fmt, x64_va_list_t b)
 {
@@ -997,11 +1030,26 @@ EXPORT int my_vscanf(x64emu_t* emu, void* fmt, x64_va_list_t b)
     return vscanf(fmt, VARARGS);
 }
 
-EXPORT int my__IO_vfscanf(x64emu_t* emu, void* stream, void* fmt, void* b) __attribute__((alias("my_vfscanf")));
-EXPORT int my___isoc99_vsscanf(x64emu_t* emu, void* stream, void* fmt, void* b) __attribute__((alias("my_vsscanf")));
-EXPORT int my___isoc99_vscanf(x64emu_t* emu, void* fmt, void* b) __attribute__((alias("my_vscanf")));
-EXPORT int my___isoc99_vswscanf(x64emu_t* emu, void* stream, void* fmt, void* b) __attribute__((alias("my_vswscanf")));
-EXPORT int my___isoc99_vfscanf(x64emu_t* emu, void* stream, void* fmt, void* b) __attribute__((alias("my_vfscanf")));
+EXPORT int my__IO_vfscanf(x64emu_t* emu, void* stream, void* fmt, void* b)
+{
+    return my_vfscanf(emu, stream, fmt, b);
+}
+EXPORT int my___isoc99_vsscanf(x64emu_t* emu, void* stream, void* fmt, void* b)
+{
+    return my_vsscanf(emu, stream, fmt, b);
+}
+EXPORT int my___isoc99_vscanf(x64emu_t* emu, void* fmt, void* b)
+{
+    return my_vscanf(emu, fmt, b);
+}
+EXPORT int my___isoc99_vswscanf(x64emu_t* emu, void* stream, void* fmt, void* b)
+{
+    return my_vswscanf(emu, stream, fmt, b);
+}
+EXPORT int my___isoc99_vfscanf(x64emu_t* emu, void* stream, void* fmt, void* b)
+{
+    return my_vfscanf(emu, stream, fmt, b);
+}
 
 EXPORT int my___isoc99_fscanf(x64emu_t* emu, void* stream, void* fmt, uint64_t* b)
 {
@@ -1010,7 +1058,10 @@ EXPORT int my___isoc99_fscanf(x64emu_t* emu, void* stream, void* fmt, uint64_t* 
 
   return vfscanf(stream, fmt, VARARGS);
 }
-EXPORT int my_fscanf(x64emu_t* emu, void* stream, void* fmt, uint64_t* b) __attribute__((alias("my___isoc99_fscanf")));
+EXPORT int my_fscanf(x64emu_t* emu, void* stream, void* fmt, uint64_t* b)
+{
+    return my___isoc99_fscanf(emu, stream, fmt, b);
+}
 
 EXPORT int my___isoc99_scanf(x64emu_t* emu, void* fmt, uint64_t* b)
 {
@@ -1047,7 +1098,10 @@ EXPORT int my_vsnprintf(x64emu_t* emu, void* buff, size_t s, void * fmt, x64_va_
     int r = vsnprintf(buff, s, fmt, VARARGS);
     return r;
 }
-EXPORT int my___vsnprintf(x64emu_t* emu, void* buff, size_t s, void * fmt, x64_va_list_t b) __attribute__((alias("my_vsnprintf")));
+EXPORT int my___vsnprintf(x64emu_t* emu, void* buff, size_t s, void * fmt, x64_va_list_t b)
+{
+    return my_vsnprintf(emu, buff, s, fmt, b);
+}
 EXPORT int my___vsnprintf_chk(x64emu_t* emu, void* buff, size_t s, int flags, size_t slen, void * fmt, x64_va_list_t b) {
     (void)emu;
     #ifdef CONVERT_VALIST
@@ -1105,8 +1159,14 @@ EXPORT int my_vswprintf(x64emu_t* emu, void* buff, size_t s, void * fmt, x64_va_
     int r = vswprintf(buff, s, fmt, VARARGS);
     return r;
 }
-EXPORT int my___vswprintf(x64emu_t* emu, void* buff, size_t s, void * fmt, x64_va_list_t b) __attribute__((alias("my_vswprintf")));
-EXPORT int my___vswprintf_chk(x64emu_t* emu, void* buff, size_t s, void * fmt, x64_va_list_t b) __attribute__((alias("my_vswprintf")));
+EXPORT int my___vswprintf(x64emu_t* emu, void* buff, size_t s, void * fmt, x64_va_list_t b)
+{
+    return my_vswprintf(emu, buff, s, fmt, b);
+}
+EXPORT int my___vswprintf_chk(x64emu_t* emu, void* buff, size_t s, void * fmt, x64_va_list_t b)
+{
+    return my_vswprintf(emu, buff, s, fmt, b);
+}
 
 EXPORT int my_swscanf(x64emu_t* emu, void* stream, void* fmt, uint64_t* b)
 {
@@ -1387,7 +1447,10 @@ EXPORT int my_stat(x64emu_t *emu, void* filename, void* buf)
         UnalignStat64(&st, buf);
     return r;
 }
-EXPORT int my_stat64(x64emu_t *emu, void* filename, void* buf) __attribute__((alias("my_stat")));
+EXPORT int my_stat64(x64emu_t *emu, void* filename, void* buf)
+{
+    return my_stat(emu, filename, buf);
+}
 
 EXPORT int my_lstat(x64emu_t *emu, void* filename, void* buf)
 {
@@ -1398,7 +1461,10 @@ EXPORT int my_lstat(x64emu_t *emu, void* filename, void* buf)
         UnalignStat64(&st, buf);
     return r;
 }
-EXPORT int my_lstat64(x64emu_t *emu, void* filename, void* buf) __attribute__((alias("my_lstat")));
+EXPORT int my_lstat64(x64emu_t *emu, void* filename, void* buf)
+{
+    return my_lstat(emu, filename, buf);
+}
 
 EXPORT int my_fstat(x64emu_t *emu, int fd, void* buf)
 {
@@ -1409,7 +1475,10 @@ EXPORT int my_fstat(x64emu_t *emu, int fd, void* buf)
         UnalignStat64(&st, buf);
     return r;
 }
-EXPORT int my_fstat64(x64emu_t* emu, int fd, void* buf) __attribute__((alias("my_fstat")));
+EXPORT int my_fstat64(x64emu_t* emu, int fd, void* buf)
+{
+    return my_fstat(emu, fd, buf);
+}
 
 EXPORT int my_fstatat(x64emu_t *emu, int fd, const char* path, void* buf, int flags)
 {
@@ -1420,7 +1489,10 @@ EXPORT int my_fstatat(x64emu_t *emu, int fd, const char* path, void* buf, int fl
         UnalignStat64(&st, buf);
     return r;
 }
-EXPORT int my_fstatat64(x64emu_t *emu, int fd, const char* path, void* buf, int flags) __attribute__((alias("my_fstatat")));
+EXPORT int my_fstatat64(x64emu_t *emu, int fd, const char* path, void* buf, int flags)
+{
+    return my_fstatat(emu, fd, path, buf, flags);
+}
 
 EXPORT int my__IO_file_stat(x64emu_t* emu, void* f, void* buf)
 {
@@ -1948,7 +2020,10 @@ EXPORT int32_t my_open(x64emu_t* emu, void* pathname, int32_t flags, uint32_t mo
     int ret = open(pathname, flags, mode);
     return ret;
 }
-EXPORT int32_t my___open(x64emu_t* emu, void* pathname, int32_t flags, uint32_t mode) __attribute__((alias("my_open")));
+EXPORT int32_t my___open(x64emu_t* emu, void* pathname, int32_t flags, uint32_t mode)
+{
+    return my_open(emu, pathname, flags, mode);
+}
 
 //#ifdef DYNAREC
 //static int hasDBFromAddress(uintptr_t addr)
@@ -2145,7 +2220,10 @@ EXPORT FILE* my_fopen64(x64emu_t* emu, const char* path, const char* mode)
     }
     return fopen64(path, mode);
 }
-EXPORT FILE* my_fopen(x64emu_t* emu, const char* path, const char* mode) __attribute__((alias("my_fopen64")));
+EXPORT FILE* my_fopen(x64emu_t* emu, const char* path, const char* mode)
+{
+    return my_fopen64(emu, path, mode);
+}
 
 #if 0
 EXPORT int32_t my_ftw(x64emu_t* emu, void* pathname, void* B, int32_t nopenfd)
@@ -2227,7 +2305,10 @@ EXPORT int32_t my_glob64(x64emu_t *emu, void* pat, int32_t flags, void* errfnc, 
     (void)emu;
     return glob64(pat, flags, findgloberrFct(errfnc), pglob);
 }
-EXPORT int32_t my_glob(x64emu_t *emu, void* pat, int32_t flags, void* errfnc, void* pglob) __attribute__((alias("my_glob64")));
+EXPORT int32_t my_glob(x64emu_t *emu, void* pat, int32_t flags, void* errfnc, void* pglob)
+{
+    return my_glob64(emu, pat, flags, errfnc, pglob);
+}
 #endif
 
 EXPORT int my_scandir64(x64emu_t *emu, void* dir, void* namelist, void* sel, void* comp)
@@ -2235,7 +2316,10 @@ EXPORT int my_scandir64(x64emu_t *emu, void* dir, void* namelist, void* sel, voi
     (void)emu;
     return scandir64(dir, namelist, findfilter64Fct(sel), findcompare64Fct(comp));
 }
-EXPORT int my_scandir(x64emu_t *emu, void* dir, void* namelist, void* sel, void* comp) __attribute__((alias("my_scandir64")));
+EXPORT int my_scandir(x64emu_t *emu, void* dir, void* namelist, void* sel, void* comp)
+{
+    return my_scandir64(emu, dir, namelist, sel, comp);
+}
 
 EXPORT int my_scandirat(x64emu_t *emu, int dirfd, void* dirp, void* namelist, void* sel, void* comp)
 {
@@ -2248,7 +2332,10 @@ EXPORT int my_ftw64(x64emu_t* emu, void* filename, void* func, int descriptors)
     (void)emu;
     return ftw64(filename, findftw64Fct(func), descriptors);
 }
-EXPORT int my_ftw(x64emu_t* emu, void* filename, void* func, int descriptors) __attribute__((alias("my_ftw64")));
+EXPORT int my_ftw(x64emu_t* emu, void* filename, void* func, int descriptors)
+{
+    return my_ftw64(emu, filename, func, descriptors);
+}
 
 EXPORT int32_t my_nftw64(x64emu_t* emu, void* pathname, void* B, int32_t nopenfd, int32_t flags)
 {
@@ -2798,7 +2885,10 @@ EXPORT int32_t my_fcntl(x64emu_t* emu, int32_t a, int32_t b, void* c)
 
     return ret;
 }
-EXPORT int32_t my___fcntl(x64emu_t* emu, int32_t a, int32_t b, void* c) __attribute__((alias("my_fcntl")));
+EXPORT int32_t my___fcntl(x64emu_t* emu, int32_t a, int32_t b, void* c)
+{
+    return my_fcntl(emu, a, b, c);
+}
 
 #if 0
 EXPORT int32_t my_preadv64(x64emu_t* emu, int32_t fd, void* v, int32_t c, int64_t o)
@@ -3054,7 +3144,10 @@ EXPORT void* my_mmap64(x64emu_t* emu, void *addr, size_t length, int prot, int f
     errno = e;  // preserve errno
     return ret;
 }
-EXPORT void* my_mmap(x64emu_t* emu, void *addr, size_t length, int prot, int flags, int fd, ssize_t offset) __attribute__((alias("my_mmap64")));
+EXPORT void* my_mmap(x64emu_t* emu, void *addr, size_t length, int prot, int flags, int fd, ssize_t offset)
+{
+    return my_mmap64(emu, addr, length, prot, flags, fd, offset);
+}
 
 EXPORT void* my_mremap(x64emu_t* emu, void* old_addr, size_t old_size, size_t new_size, int flags, void* new_addr)
 {
@@ -3799,7 +3892,10 @@ EXPORT void my_exit(x64emu_t* emu, int code)
     exit(code);
 }
 
-EXPORT void my__exit(x64emu_t* emu, int code) __attribute__((alias("my_exit")));
+EXPORT void my__exit(x64emu_t* emu, int code)
+{
+    my_exit(emu, code);
+}
 
 EXPORT int my_prctl(x64emu_t* emu, int option, unsigned long arg2, unsigned long arg3, unsigned long arg4, unsigned long arg5)
 {
@@ -3834,7 +3930,10 @@ EXPORT long my_sysconf(x64emu_t* emu, int what) {
     }
     return sysconf(what);
 }
-EXPORT long my___sysconf(x64emu_t* emu, int what) __attribute__((alias("my_sysconf")));
+EXPORT long my___sysconf(x64emu_t* emu, int what)
+{
+    return my_sysconf(emu, what);
+}
 
 EXPORT char* my___progname = NULL;
 EXPORT char* my___progname_full = NULL;

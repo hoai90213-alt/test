@@ -92,6 +92,24 @@ static inline int pthread_mutexattr_setrobust(pthread_mutexattr_t* attr, int rob
     errno = ENOSYS;
     return -1;
 }
+
+static inline int pthread_condattr_getclock(const pthread_condattr_t* attr, clockid_t* clk_id)
+{
+    (void)attr;
+    if (clk_id) {
+        *clk_id = CLOCK_REALTIME;
+    }
+    errno = ENOSYS;
+    return -1;
+}
+
+static inline int pthread_condattr_setclock(pthread_condattr_t* attr, clockid_t clk_id)
+{
+    (void)attr;
+    (void)clk_id;
+    errno = ENOSYS;
+    return -1;
+}
 #endif
 #endif
 
