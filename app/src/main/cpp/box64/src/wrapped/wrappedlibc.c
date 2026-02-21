@@ -3842,7 +3842,7 @@ EXPORT int my_stime(x64emu_t* emu, const time_t *t)
 }
 
 int GetTID();
-#ifdef ANDROID
+#if defined(ANDROID) || defined(__APPLE__)
 void updateGlibcTidCache() {}
 #else
 struct glibc_pthread {
