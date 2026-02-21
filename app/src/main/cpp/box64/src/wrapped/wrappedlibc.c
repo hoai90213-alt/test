@@ -3045,9 +3045,32 @@ EXPORT const int32_t *my___ctype_toupper;
 
 void ctSetup()
 {
+#if defined(__APPLE__)
+    static unsigned short int ctype_b[384] = {0};
+    static int32_t ctype_tolower[384] = {0};
+    static int32_t ctype_toupper[384] = {0};
+    static int initialized = 0;
+    if (!initialized) {
+        for (int i = 0; i < 384; ++i) {
+            int c = i - 128;
+            if (c >= 0 && c <= 255) {
+                ctype_tolower[i] = (int32_t)tolower(c);
+                ctype_toupper[i] = (int32_t)toupper(c);
+            } else {
+                ctype_tolower[i] = c;
+                ctype_toupper[i] = c;
+            }
+        }
+        initialized = 1;
+    }
+    my___ctype_b = ctype_b + 128;
+    my___ctype_toupper = ctype_toupper + 128;
+    my___ctype_tolower = ctype_tolower + 128;
+#else
     my___ctype_b = *(__ctype_b_loc());
     my___ctype_toupper = *(__ctype_toupper_loc());
     my___ctype_tolower = *(__ctype_tolower_loc());
+#endif
 }
 #endif
 

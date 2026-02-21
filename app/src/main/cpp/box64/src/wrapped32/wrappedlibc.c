@@ -2574,6 +2574,14 @@ EXPORT int my32_alphasort64(x64emu_t* emu, ptr_t* d1_, ptr_t* d2_)
 #ifndef ANDROID
 EXPORT void* my32___ctype_b_loc(x64emu_t* emu)
 {
+#if defined(__APPLE__)
+    if(!emu->ref_ctype) {
+        memset(emu->libctype, 0, 384*sizeof(short));
+        emu->ref_ctype = (const unsigned short*)emu->libctype;
+        emu->ctype = emu->libctype+128;
+    }
+    return &emu->ctype;
+#else
     const unsigned short** src =__ctype_b_loc();
     if(*src != emu->ref_ctype) {
         memcpy(emu->libctype, &((*src)[-128]), 384*sizeof(short));
@@ -2581,9 +2589,24 @@ EXPORT void* my32___ctype_b_loc(x64emu_t* emu)
         emu->ctype = emu->libctype+128;
     }
     return &emu->ctype;
+#endif
 }
 EXPORT void* my32___ctype_tolower_loc(x64emu_t* emu)
 {
+#if defined(__APPLE__)
+    if(!emu->ref_tolower) {
+        for(int i=0; i<384; ++i) {
+            int c = i - 128;
+            if(c>=0 && c<=255)
+                emu->libctolower[i] = tolower(c);
+            else
+                emu->libctolower[i] = c;
+        }
+        emu->ref_tolower = (const int*)emu->libctolower;
+        emu->tolower = emu->libctolower+128;
+    }
+    return &emu->tolower;
+#else
     const int** src =__ctype_tolower_loc();
     if(*src != emu->ref_tolower) {
         memcpy(emu->libctolower, &((*src)[-128]), 384*sizeof(int));
@@ -2591,9 +2614,24 @@ EXPORT void* my32___ctype_tolower_loc(x64emu_t* emu)
         emu->tolower = emu->libctolower+128;
     }
     return &emu->tolower;
+#endif
 }
 EXPORT void* my32___ctype_toupper_loc(x64emu_t* emu)
 {
+#if defined(__APPLE__)
+    if(!emu->ref_toupper) {
+        for(int i=0; i<384; ++i) {
+            int c = i - 128;
+            if(c>=0 && c<=255)
+                emu->libctoupper[i] = toupper(c);
+            else
+                emu->libctoupper[i] = c;
+        }
+        emu->ref_toupper = (const int*)emu->libctoupper;
+        emu->toupper = emu->libctoupper+128;
+    }
+    return &emu->toupper;
+#else
     const int** src =__ctype_toupper_loc();
     if(*src != emu->ref_toupper) {
         memcpy(emu->libctoupper, &((*src)[-128]), 384*sizeof(int));
@@ -2601,6 +2639,7 @@ EXPORT void* my32___ctype_toupper_loc(x64emu_t* emu)
         emu->toupper = emu->libctoupper+128;
     }
     return &emu->toupper;
+#endif
 }
 #endif
 
@@ -2750,12 +2789,29 @@ static void ctSetup()
 #else
 static void ctSetup()
 {
+#if defined(__APPLE__)
+    for(int i=0; i<384; ++i) {
+        int c = i - 128;
+        my32_ctype[i] = 0;
+        if(c>=0 && c<=255) {
+            my32_toupper[i] = toupper(c);
+            my32_tolower[i] = tolower(c);
+        } else {
+            my32_toupper[i] = c;
+            my32_tolower[i] = c;
+        }
+    }
+    my32___ctype_b = to_ptrv(my32_ctype+128);
+    my32___ctype_toupper = to_ptrv(my32_toupper+128);
+    my32___ctype_tolower = to_ptrv(my32_tolower+128);
+#else
     memcpy(my32_ctype, &((*__ctype_b_loc())[-128]), 384*sizeof(short));
     my32___ctype_b = to_ptrv(my32_ctype+128);
     memcpy(my32_toupper, &((*__ctype_toupper_loc())[-128]), 384*sizeof(int));
     my32___ctype_toupper = to_ptrv(my32_toupper+128);
     memcpy(my32_tolower, &((*__ctype_tolower_loc())[-128]), 384*sizeof(int));
     my32___ctype_tolower = to_ptrv(my32_tolower+128);
+#endif
 }
 #endif
 
