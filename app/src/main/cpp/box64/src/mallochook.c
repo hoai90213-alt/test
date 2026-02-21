@@ -47,6 +47,14 @@ EXPORT int isinff(float value)
 	return isinf((double)value);
 }
 
+#ifdef isnanf
+#undef isnanf
+#endif
+EXPORT int isnanf(float value)
+{
+	return isnan((double)value);
+}
+
 EXPORT void* __libc_malloc(size_t size)
 {
     return malloc_zone_malloc(box64_apple_default_zone(), size);
