@@ -30,7 +30,10 @@ EXPORT void* my_glXGetProcAddress(x64emu_t* emu, void* name)
     const char* rname = (const char*)name;
     return getGLProcAddress(emu, my_lib->w.priv, rname);
 }
-EXPORT void* my_glXGetProcAddressARB(x64emu_t* emu, void* name) __attribute__((alias("my_glXGetProcAddress")));
+EXPORT void* my_glXGetProcAddressARB(x64emu_t* emu, void* name)
+{
+    return my_glXGetProcAddress(emu, name);
+}
 
 typedef int  (*iFi_t)(int);
 typedef void (*vFpp_t)(void*, void*);

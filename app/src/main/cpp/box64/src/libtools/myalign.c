@@ -536,9 +536,11 @@ void myStackAlignScanfW(x64emu_t* emu, const char* fmt, uint64_t* st, uint64_t* 
 }
 
 
+#if !defined(__APPLE__)
 #undef st_atime
 #undef st_mtime
 #undef st_ctime
+#endif
 
 void UnalignStat64(const void* source, void* dest)
 {
@@ -557,9 +559,18 @@ void UnalignStat64(const void* source, void* dest)
     x64st->st_size     = st->st_size;
     x64st->st_blksize  = st->st_blksize;
     x64st->st_blocks   = st->st_blocks;
+#if defined(__APPLE__)
+    x64st->st_atim.tv_sec = st->st_atime;
+    x64st->st_atim.tv_nsec = 0;
+    x64st->st_mtim.tv_sec = st->st_mtime;
+    x64st->st_mtim.tv_nsec = 0;
+    x64st->st_ctim.tv_sec = st->st_ctime;
+    x64st->st_ctim.tv_nsec = 0;
+#else
     x64st->st_atim     = st->st_atim;
     x64st->st_mtim     = st->st_mtim;
     x64st->st_ctim     = st->st_ctim;
+#endif
 }
 
 void AlignStat64(const void* source, void* dest)
@@ -577,9 +588,15 @@ void AlignStat64(const void* source, void* dest)
     st->st_size     = x64st->st_size;
     st->st_blksize  = x64st->st_blksize;
     st->st_blocks   = x64st->st_blocks;
+#if defined(__APPLE__)
+    st->st_atime = x64st->st_atim.tv_sec;
+    st->st_mtime = x64st->st_mtim.tv_sec;
+    st->st_ctime = x64st->st_ctim.tv_sec;
+#else
     st->st_atim     = x64st->st_atim;
     st->st_mtim     = x64st->st_mtim;
     st->st_ctim     = x64st->st_ctim;
+#endif
 }
 
 struct __attribute__((packed)) x64_epoll_event {
