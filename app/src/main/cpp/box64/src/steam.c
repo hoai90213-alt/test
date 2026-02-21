@@ -4,6 +4,9 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <errno.h>
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
+#endif
 
 #include "debug.h"
 #include "box64context.h"
@@ -12,6 +15,17 @@
 #ifndef MAX_PATH
 #define MAX_PATH 4096
 #endif
+
+static int steam_system(const char* cmd)
+{
+#if defined(__APPLE__) && defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+    (void)cmd;
+    errno = ENOSYS;
+    return -1;
+#else
+    return system(cmd);
+#endif
+}
 
 void pressure_vessel(int argc, const char** argv, int nextarg, const char* prog)
 {
@@ -104,13 +118,13 @@ void pressure_vessel(int argc, const char** argv, int nextarg, const char* prog)
             char tmp[MAX_PATH*4] = {0};
             // prepare folders, using ldconfig
             snprintf(tmp, sizeof(tmp), "%s -i -n %s/lib/x86_64-linux-gnu", ldcmd, sniper);
-            if(system(tmp)<0) printf_log(LOG_INFO, "%s failed\n", tmp);
+            if(steam_system(tmp)<0) printf_log(LOG_INFO, "%s failed\n", tmp);
             snprintf(tmp, sizeof(tmp), "%s -i -n %s/lib/i386-linux-gnu", ldcmd, sniper);
-            if(system(tmp)<0) printf_log(LOG_INFO, "%s failed\n", tmp);
+            if(steam_system(tmp)<0) printf_log(LOG_INFO, "%s failed\n", tmp);
             snprintf(tmp, sizeof(tmp), "%s -i -n %s/lib", ldcmd, sniper);
-            if(system(tmp)<0) printf_log(LOG_INFO, "%s failed\n", tmp);
+            if(steam_system(tmp)<0) printf_log(LOG_INFO, "%s failed\n", tmp);
             snprintf(tmp, sizeof(tmp), "%s -i -n %s/lib64", ldcmd, sniper);
-            if(system(tmp)<0) printf_log(LOG_INFO, "%s failed\n", tmp);
+            if(steam_system(tmp)<0) printf_log(LOG_INFO, "%s failed\n", tmp);
             // setup LD_LIBRARY_PATH
             const char* ld = getenv("LD_LIBRARY_PATH");
             snprintf(tmp, sizeof(tmp), "%s/lib/x86_64-linux-gnu:%s/lib/i386-linux-gnu:%s/lib:%s/lib64:%s", sniper, sniper, sniper, sniper, ld?ld:"");

@@ -113,6 +113,14 @@
 #undef nftw
 #undef glob
 
+#if defined(__APPLE__)
+#define BOX64_APPLE_STAT64_REMAP 1
+#define stat64 stat
+#define lstat64 lstat
+#define fstat64 fstat
+#define fstatat64 fstatat
+#endif
+
 #define MY32_F_GETLK    5
 #define MY32_F_SETLK    6
 #define MY32_F_SETLKW   7
@@ -3394,5 +3402,13 @@ void libc32_net_init();
     my32_stdin = to_ptrv(my__IO_2_1_stdin_);                                \
     my32_stdout = to_ptrv(my__IO_2_1_stdout_);                              \
     my32_stderr = to_ptrv(my__IO_2_1_stderr_);
+
+#if defined(BOX64_APPLE_STAT64_REMAP)
+#undef fstatat64
+#undef fstat64
+#undef lstat64
+#undef stat64
+#undef BOX64_APPLE_STAT64_REMAP
+#endif
 
 #include "wrappedlib_init32.h"

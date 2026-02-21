@@ -111,6 +111,14 @@ typedef void* (*pFpip_t)(void*, int, void*);
 
 #include "wrappercallback.h"
 
+#if defined(__APPLE__)
+#define BOX64_APPLE_STAT64_REMAP 1
+#define stat64 stat
+#define lstat64 lstat
+#define fstat64 fstat
+#define fstatat64 fstatat
+#endif
+
 static int regs_abi[] = {_DI, _SI, _DX, _CX, _R8, _R9};
 void* getVargN(x64emu_t *emu, int n)
 {
@@ -4056,5 +4064,13 @@ __attribute__((weak)) uint32_t arc4random()
 #define CUSTOM_FINI \
     freeMy();       \
     return;     // do not unload...
+
+#if defined(BOX64_APPLE_STAT64_REMAP)
+#undef fstatat64
+#undef fstat64
+#undef lstat64
+#undef stat64
+#undef BOX64_APPLE_STAT64_REMAP
+#endif
 
 #include "wrappedlib_init.h"
